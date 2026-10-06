@@ -51,5 +51,4 @@ export const W_FAMILY = [
   ['alone', '/əˈləʊn/', 'adv.', '独自', 'She lives alone in a small flat.', '她独自住在一套小公寓里。'],
   ['Mr', '/ˈmɪs.tər/', 'n.', '先生（用于姓前）', 'Mr Brown is our English teacher.', '布朗先生是我们的英语老师。'],
   ['Mrs', '/ˈmɪs.ɪz/', 'n.', '太太（用于姓前）', 'Mrs Green lives next door.', '格林太太住在隔壁。'],
-  ['Miss', '/mɪs/', 'n.', '小姐；女老师', 'Miss Smith teaches us music.', '史密斯老师教我们音乐。'],
 ];

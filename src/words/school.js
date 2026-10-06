@@ -46,7 +46,7 @@ export const W_SCHOOL = [
   ['calculator', '/ˈkæl.kjə.leɪ.tər/', 'n.', '计算器', 'You can use a calculator in this test.', '这次测验可以用计算器。'],
   ['timetable', '/ˈtaɪmˌteɪ.bəl/', 'n.', '课程表；时刻表', 'Look at the timetable for Monday.', '看看星期一的课程表。'],
   ['term', '/tɜːm/', 'n.', '学期', 'The new term starts in September.', '新学期九月开始。'],
-  ['break', '/breɪk/', 'n.', '课间休息', 'We play outside at break.', '课间我们在外面玩。'],
+  ['break', '/breɪk/', 'n.', '课间休息；打破', 'We play outside at break.', '课间我们在外面玩。'],
   ['playground', '/ˈpleɪ.ɡraʊnd/', 'n.', '操场；游乐场', 'The children are in the playground.', '孩子们在操场上。'],
   ['uniform', '/ˈjuː.nɪ.fɔːm/', 'n.', '校服；制服', 'We wear a uniform to school.', '我们穿校服上学。'],
   ['course', '/kɔːs/', 'n.', '课程', 'She is doing a cooking course.', '她在上烹饪课。'],
