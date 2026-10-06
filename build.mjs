@@ -26,6 +26,7 @@ const ORDER = [
   'src/ui/screen.js',
   'src/ui/review.js',
   'src/ui/wordbook.js',
+  'src/ui/parent.js',
   'src/app.js',
 ];
 

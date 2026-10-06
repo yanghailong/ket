@@ -179,6 +179,69 @@ SCENARIOS.push(async function wordbook() {
   setValue(qa('.filters select')[0], 'all', 'change');
 });
 
+// 模拟家长选择文件：用 DataTransfer 往隐藏的 file input 塞一个文件
+async function importText(text) {
+  const input = q('input[type=file]');
+  const dt = new (win().DataTransfer)();
+  dt.items.add(new (win().File)([text], 'backup.json', { type: 'application/json' }));
+  input.files = dt.files;
+  input.dispatchEvent(new (win().Event)('change', { bubbles: true }));
+  await sleep(200);
+}
+
+SCENARIOS.push(async function parent() {
+  await seedReview({ forgotten: ['brother'] });
+  byText('.nav button', '家长').click();
+  await sleep(50);
+  check('家长页四张卡片', qa('main .card').length === 4);
+  check('14 天日历', qa('.cal-day').length === 14);
+  const [screenSel, timerSel, spellSel] = qa('.field select');
+  setValue(timerSel, '0', 'change');
+  setValue(spellSel, 'false', 'change');
+  setValue(screenSel, '100', 'change');
+  const st = ev('getState().settings');
+  check('设置已保存', st.timerSec === 0 && st.spelling === false && st.dailyScreen === 100, JSON.stringify(st));
+  check('每日数量从明天起生效（今天任务不变）', ev('getState().today.screenIds.length') === 0);
+
+  // 导出：拦截 a.click 拿到备份内容
+  let exported = null;
+  const origClick = win().HTMLAnchorElement.prototype.click;
+  win().HTMLAnchorElement.prototype.click = function () { exported = this; };
+  byText('button', '导出备份').click();
+  win().HTMLAnchorElement.prototype.click = origClick;
+  check('导出文件名带日期', !!exported && /^ket-vocab-backup-\d{4}-\d{2}-\d{2}\.json$/.test(exported.download));
+  const backupText = await (await win().fetch(exported.href)).text();
+  check('导出内容是当前进度', JSON.parse(backupText).words.brother.status === 'forgotten');
+
+  // 重置：不输入就点 → 拒绝
+  byText('button', '重置').click();
+  check('未输入"重置"时不清空', ev('getState().words.brother') !== undefined);
+  setValue(q('.card:last-child input[type=text]'), '重置', 'input');
+  byText('.card:last-child button', '重置').click();
+  await sleep(50);
+  check('输入"重置"后清空并回首页', ev('Object.keys(getState().words).length') === 0 && !!q('.home'));
+
+  // 导入：坏文件拒绝，好文件恢复
+  byText('.nav button', '家长').click();
+  await sleep(50);
+  win().confirm = () => true;
+  await importText('{"hello": 1}');
+  check('导入无效文件被拒绝，进度不变', ev('Object.keys(getState().words).length') === 0 && doc().body.textContent.includes('文件不是有效的备份'));
+  await importText(backupText);
+  check('导入备份后进度恢复', ev('getState().words.brother.status') === 'forgotten' && ev('getState().settings.timerSec') === 0);
+});
+
+SCENARIOS.push(async function corruptStorage() {
+  await load();
+  win().localStorage.clear();
+  win().localStorage.setItem('ketVocab.v1', '{broken');
+  await load();
+  check('数据损坏时显示提示条', !!q('.banner') && q('.banner').textContent.includes('损坏'));
+  check('损坏数据另存', win().localStorage.getItem('ketVocab.v1.broken') === '{broken');
+  check('照常显示首页', !!q('.home'));
+  win().localStorage.clear();
+});
+
 (async () => {
   for (const sc of SCENARIOS) {
     try { await sc(); } catch (e) { results.push(`FAIL ${sc.name} 抛出异常 — ${e && e.stack || e}`); }
