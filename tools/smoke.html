@@ -242,6 +242,30 @@ SCENARIOS.push(async function corruptStorage() {
   win().localStorage.clear();
 });
 
+SCENARIOS.push(async function fullDay() {
+  await load();
+  win().localStorage.clear();
+  await load();
+  byText('button', '开始').click();
+  await sleep(50);
+  let wrong = 0;
+  for (let i = 0; i < 50; i++) {
+    const pick = i % 10 === 0 ? wrongChoice() : correctChoice();
+    if (i % 10 === 0) wrong++;
+    pick.click();
+    await sleep(i % 10 === 0 ? 1600 : 800);
+  }
+  check('筛完 50 题回到首页', !!q('.home'));
+  check('弹出打卡庆祝', !!doc().querySelector('.overlay'));
+  const s = ev('getState()');
+  check('筛查任务 5 + 打卡 5 = 10 星', s.stats.stars === 10, String(s.stats.stars));
+  check('连续打卡 1 天', s.stats.streakDays === 1 && doc().body.textContent.includes('连续 1 天'));
+  check(`遗忘 ${wrong} 个、已掌握 ${50 - wrong} 个`, Object.values(s.words).filter(r => r.status === 'forgotten').length === wrong);
+  check('首页筛查卡片打勾', qa('.task.done').length === 2);
+  doc().querySelector('.overlay button').click();
+  win().localStorage.clear();
+});
+
 (async () => {
   for (const sc of SCENARIOS) {
     try { await sc(); } catch (e) { results.push(`FAIL ${sc.name} 抛出异常 — ${e && e.stack || e}`); }
