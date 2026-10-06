@@ -146,6 +146,39 @@ SCENARIOS.push(async function listenChoice() {
   check('听音选对记为通过', ev('getState().words.aunt.streak') === 1);
 });
 
+function setValue(el, value, type) {
+  el.value = value;
+  el.dispatchEvent(new (win().Event)(type, { bubbles: true }));
+}
+
+SCENARIOS.push(async function wordbook() {
+  await seedReview({ forgotten: ['brother', 'sister'] });
+  byText('.nav button', '词本').click();
+  await sleep(50);
+  check('词本显示全部单词', doc().body.textContent.includes(`共 ${ev('WORDS.length')} 个`));
+  const [topicSel, statusSel] = qa('.filters select');
+  setValue(statusSel, 'forgotten', 'change');
+  check('按状态筛选遗忘词', qa('.wb-row').length === 2 && doc().body.textContent.includes('共 2 个'));
+  setValue(statusSel, 'all', 'change');
+  setValue(q('.filters input'), 'bro', 'input');
+  check('搜英文 bro 找到 brother', qa('.wb-row b').some(b => b.textContent === 'brother'));
+  setValue(q('.filters input'), '兄弟', 'input');
+  check('搜中文找到 brother', qa('.wb-row b').some(b => b.textContent === 'brother'));
+  setValue(q('.filters input'), '', 'input');
+  setValue(topicSel, 'school', 'change');
+  check('按话题筛选（学校）', qa('.wb-row').every(r => ev(`WORD_BY_ID.get(${JSON.stringify(r.querySelector('b').textContent)}).topic`) === 'school'));
+  setValue(topicSel, 'family', 'change');
+  const row = qa('.wb-row')[0];
+  row.querySelector('summary').click();
+  check('点开一行显示详情', row.open && !!row.querySelector('.example'));
+  byText('.nav button', '首页').click();
+  await sleep(50);
+  byText('.nav button', '词本').click();
+  await sleep(50);
+  check('离开再回来，筛选条件保持', qa('.filters select')[0].value === 'family');
+  setValue(qa('.filters select')[0], 'all', 'change');
+});
+
 (async () => {
   for (const sc of SCENARIOS) {
     try { await sc(); } catch (e) { results.push(`FAIL ${sc.name} 抛出异常 — ${e && e.stack || e}`); }

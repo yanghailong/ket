@@ -3,6 +3,7 @@ import { showEvents } from './ui/celebrate.js';
 import { renderHome } from './ui/home.js';
 import { renderScreen } from './ui/screen.js';
 import { renderReview } from './ui/review.js';
+import { renderWordbook } from './ui/wordbook.js';
 import { todayStr } from './dates.js';
 import { ensureToday, remaining } from './daily.js';
 import { recordAnswer, settle } from './session.js';
@@ -14,6 +15,7 @@ const VIEWS = {
   home: renderHome,
   screen: renderScreen,
   review: renderReview,
+  wordbook: renderWordbook,
 };
 const NAV_ITEMS = [['home', '🏠 首页'], ['wordbook', '📒 词本'], ['parent', '👨‍👩‍👧 家长']];
 const WARNINGS = {

@@ -25,6 +25,7 @@ const ORDER = [
   'src/ui/quiz.js',
   'src/ui/screen.js',
   'src/ui/review.js',
+  'src/ui/wordbook.js',
   'src/app.js',
 ];
 
