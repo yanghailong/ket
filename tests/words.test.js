@@ -34,3 +34,7 @@ test('validateWords 能发现常见错误', () => {
   ], TOPICS);
   assert.equal(errs.length, 6);
 });
+
+test('词库总数在 1400–1600 之间', () => {
+  assert.ok(WORDS.length >= 1400 && WORDS.length <= 1600, `当前 ${WORDS.length} 词`);
+});
