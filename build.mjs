@@ -22,6 +22,8 @@ const ORDER = [
   'src/ui/dom.js',
   'src/ui/celebrate.js',
   'src/ui/home.js',
+  'src/ui/quiz.js',
+  'src/ui/screen.js',
   'src/app.js',
 ];
 

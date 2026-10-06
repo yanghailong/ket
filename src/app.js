@@ -1,6 +1,7 @@
 import { h } from './ui/dom.js';
 import { showEvents } from './ui/celebrate.js';
 import { renderHome } from './ui/home.js';
+import { renderScreen } from './ui/screen.js';
 import { todayStr } from './dates.js';
 import { ensureToday, remaining } from './daily.js';
 import { recordAnswer, settle } from './session.js';
@@ -10,6 +11,7 @@ import { WORDS } from './words/index.js';
 
 const VIEWS = {
   home: renderHome,
+  screen: renderScreen,
 };
 const NAV_ITEMS = [['home', '🏠 首页'], ['wordbook', '📒 词本'], ['parent', '👨‍👩‍👧 家长']];
 const WARNINGS = {

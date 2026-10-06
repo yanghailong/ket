@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>smoke</title></head>
+<body>
+<!--
+  交互冒烟测试：在 iframe 里打开构建好的页面，模拟孩子点击，并把结果写进 #log。
+  运行（需先 npm run build）：
+  node tools/run-smoke.mjs
+-->
+<pre id="log"></pre>
+<iframe id="f" style="width:500px;height:900px"></iframe>
+<script>
+const logEl = document.getElementById('log');
+const results = [];
+const f = document.getElementById('f');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function check(name, cond, detail = '') {
+  results.push(`${cond ? 'PASS' : 'FAIL'} ${name}${detail ? ' — ' + detail : ''}`);
+}
+const win = () => f.contentWindow;
+const doc = () => f.contentDocument;
+const ev = code => win().eval(code);
+const q = sel => doc().querySelector(sel);
+const qa = sel => [...doc().querySelectorAll(sel)];
+const byText = (sel, text) => qa(sel).find(el => el.textContent.includes(text));
+function load(hash = '') {
+  return new Promise(resolve => {
+    f.onload = () => resolve();
+    f.src = '../dist/ket-vocab.html?' + Math.random() + hash;
+  });
+}
+function correctChoice() {
+  const en = q('.prompt .word').textContent;
+  const word = ev(`WORD_BY_ID.get(${JSON.stringify(en)})`);
+  return qa('.choice').find(b => b.textContent === word.zh);
+}
+function wrongChoice() {
+  const right = correctChoice();
+  return qa('.choice').find(b => b !== right);
+}
+
+const SCENARIOS = [];
+
+SCENARIOS.push(async function screening() {
+  await load();
+  win().localStorage.clear();
+  await load();
+  check('首页显示 0 / 50', q('.task:nth-of-type(2)') !== null && doc().body.textContent.includes('0 / 50'));
+  byText('button', '开始').click();
+  await sleep(50);
+  check('进入筛查页', !!q('.quiz-head'));
+  const firstWord = q('.prompt .word').textContent;
+  correctChoice().click();
+  check('答对变绿', !!q('.choice.right') && !q('.choice.wrong'));
+  await sleep(800);
+  check('答对约 0.7 秒后进入下一题', q('.prompt .word').textContent !== firstWord);
+  wrongChoice().click();
+  check('答错有红有绿', !!q('.choice.wrong') && !!q('.choice.right'));
+  await sleep(1600);
+  const third = q('.prompt .word').textContent;
+  await sleep(8300);
+  check('8 秒不答按答错处理', !!q('.choice.right') && qa('.choice:disabled').length === 4);
+  await sleep(1600);
+  const s = ev('getState()');
+  check('已答 3 题', s.today.screenDone.length === 3, JSON.stringify(s.today.screenDone));
+  const st = s.today.screenDone.map(id => s.words[id].status).join(',');
+  check('状态依次为 known,forgotten,forgotten', st === 'known,forgotten,forgotten', st);
+  check('超时那题是第三题', s.today.screenDone[2] === third);
+  byText('button', '← 首页').click();
+  await sleep(50);
+  check('首页显示 3 / 50 和"继续"', doc().body.textContent.includes('3 / 50') && !!byText('button', '继续'));
+  const saved = JSON.parse(win().localStorage.getItem('ketVocab.v1'));
+  check('进度已存入 localStorage', saved.today.screenDone.length === 3);
+});
+
+(async () => {
+  for (const sc of SCENARIOS) {
+    try { await sc(); } catch (e) { results.push(`FAIL ${sc.name} 抛出异常 — ${e && e.stack || e}`); }
+  }
+  const fails = results.filter(r => r.startsWith('FAIL')).length;
+  logEl.textContent = results.join('\n') + `\n== ${results.length - fails} passed, ${fails} failed ==`;
+})();
+</script>
+</body>
+</html>
