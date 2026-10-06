@@ -73,6 +73,79 @@ SCENARIOS.push(async function screening() {
   check('进度已存入 localStorage', saved.today.screenDone.length === 3);
 });
 
+// 构造进度：除 forgotten / known 指定的词外，其余全部"已掌握且远期到期"，这样当天只剩复习任务
+async function seedReview({ forgotten = [], checks = [], settings = {} }) {
+  await load();
+  win().localStorage.clear();
+  const today = ev('todayStr()');
+  const s = ev('defaultState()');
+  Object.assign(s.settings, settings);
+  for (const w of ev('WORDS')) s.words[w.id] = { status: 'known', streak: 0, due: '2099-01-01', lastSeen: today };
+  for (const id of forgotten) s.words[id] = { status: 'forgotten', streak: 0, due: today, lastSeen: today };
+  for (const id of checks) s.words[id] = { status: 'known', streak: 0, due: today, lastSeen: today };
+  win().localStorage.setItem('ketVocab.v1', JSON.stringify(s));
+  await load();
+  return today;
+}
+function typeAndSubmit(text, viaEnter = false) {
+  const input = q('.spell-input');
+  input.value = text;
+  if (viaEnter) input.dispatchEvent(new (win().KeyboardEvent)('keydown', { key: 'Enter', bubbles: true }));
+  else byText('button', '提交').click();
+}
+
+SCENARIOS.push(async function review() {
+  const today = await seedReview({ forgotten: ['mother', 'father', 'mum'], checks: ['dad'] });
+  check('首页复习显示 0 / 4', doc().body.textContent.includes('0 / 4'));
+  byText('button', '开始').click();
+  await sleep(50);
+  check('先显示单词卡', !!q('.wordcard') && q('.wordcard .word').textContent === 'mother');
+  check('单词卡有音标和例句', !!q('.wordcard .ipa') && !!q('.wordcard .example'));
+  byText('button', '我记住了').click();
+  check('拼写框自动聚焦', doc().activeElement === q('.spell-input'));
+  check('拼写页显示中文', q('.zh.big').textContent === '母亲');
+  typeAndSubmit(' Mother ');
+  check('大小写和空格不影响判定', !!q('.spell-input.right'));
+  await sleep(900);
+  check('拼对后自动下一题', q('.wordcard .word').textContent === 'father');
+  byText('button', '我记住了').click();
+  typeAndSubmit('fathr', true);
+  check('回车提交，拼错显示正确拼写', !!q('.spell-input.wrong') && q('.feedback b').textContent === 'father');
+  check('"继续"按钮获得焦点', doc().activeElement === byText('button', '继续'));
+  await sleep(2000);
+  check('拼错时停留等孩子点继续', q('.feedback b') !== null);
+  byText('button', '继续').click();
+  await sleep(50);
+  byText('button', '我记住了').click();
+  typeAndSubmit('mum');
+  await sleep(900);
+  check('抽查题是四选一', doc().body.textContent.includes('抽查') && qa('.choice').length === 4 && q('.prompt .word').textContent === 'dad');
+  correctChoice().click();
+  await sleep(900);
+  check('复习完回到首页', !!q('.home'));
+  check('弹出打卡庆祝', !!doc().querySelector('.overlay') && doc().querySelector('.overlay').textContent.includes('今日打卡成功'));
+  const s = ev('getState()');
+  check('复习任务 5 + 打卡 5 = 10 星', s.stats.stars === 10, String(s.stats.stars));
+  check('mother 通过 1 次，后天复习', s.words.mother.streak === 1 && s.words.mother.due === ev(`addDays('${today}', 2)`));
+  check('father 拼错，明天复习', s.words.father.streak === 0 && s.words.father.due === ev(`addDays('${today}', 1)`));
+  check('dad 抽查答对，30 天后再抽查', s.words.dad.status === 'known' && s.words.dad.due === ev(`addDays('${today}', 30)`));
+  check('统计：复习 4 题对 3 题', s.stats.history[today].reviewTotal === 4 && s.stats.history[today].reviewRight === 3);
+  doc().querySelector('.overlay button').click();
+  check('点"太棒了"关闭庆祝', !doc().querySelector('.overlay'));
+});
+
+SCENARIOS.push(async function listenChoice() {
+  await seedReview({ forgotten: ['aunt'], settings: { spelling: false } });
+  byText('button', '开始').click();
+  await sleep(50);
+  byText('button', '我记住了').click();
+  check('关闭拼写后改为听音选词', !!q('.speak.huge') && qa('.choice').length === 4);
+  check('选项是英文', qa('.choice').some(b => b.textContent === 'aunt'));
+  qa('.choice').find(b => b.textContent === 'aunt').click();
+  await sleep(900);
+  check('听音选对记为通过', ev('getState().words.aunt.streak') === 1);
+});
+
 (async () => {
   for (const sc of SCENARIOS) {
     try { await sc(); } catch (e) { results.push(`FAIL ${sc.name} 抛出异常 — ${e && e.stack || e}`); }

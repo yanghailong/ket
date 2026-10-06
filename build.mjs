@@ -24,6 +24,7 @@ const ORDER = [
   'src/ui/home.js',
   'src/ui/quiz.js',
   'src/ui/screen.js',
+  'src/ui/review.js',
   'src/app.js',
 ];
 

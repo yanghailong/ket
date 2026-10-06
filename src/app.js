@@ -2,6 +2,7 @@ import { h } from './ui/dom.js';
 import { showEvents } from './ui/celebrate.js';
 import { renderHome } from './ui/home.js';
 import { renderScreen } from './ui/screen.js';
+import { renderReview } from './ui/review.js';
 import { todayStr } from './dates.js';
 import { ensureToday, remaining } from './daily.js';
 import { recordAnswer, settle } from './session.js';
@@ -12,6 +13,7 @@ import { WORDS } from './words/index.js';
 const VIEWS = {
   home: renderHome,
   screen: renderScreen,
+  review: renderReview,
 };
 const NAV_ITEMS = [['home', '🏠 首页'], ['wordbook', '📒 词本'], ['parent', '👨‍👩‍👧 家长']];
 const WARNINGS = {
