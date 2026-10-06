@@ -1,0 +1,6 @@
+.DS_Store
+.superpowers/
+dist/
+helloword
+helloword.dSYM/
+node_modules/
