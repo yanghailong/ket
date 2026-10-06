@@ -56,7 +56,7 @@ export const W_HOBBIES = [
   ['balloon', '/bəˈluːn/', 'n.', '气球', 'We had lots of balloons at the party.', '聚会上有很多气球。'],
   ['invitation', '/ˌɪn.vɪˈteɪ.ʃən/', 'n.', '邀请；请柬', 'Thank you for the invitation.', '谢谢你的邀请。'],
   ['celebrate', '/ˈsel.ə.breɪt/', 'v.', '庆祝', 'How do you celebrate your birthday?', '你怎么庆祝生日？'],
-  ['present', '/ˈprez.ənt/', 'n.', '礼物', 'I bought a present for my mum.', '我给妈妈买了一份礼物。'],
+  ['present', '/ˈprez.ənt/', 'n.', '礼物；现在的', 'I bought a present for my mum.', '我给妈妈买了一份礼物。'],
   ['theme park', '/ˈθiːm ˌpɑːk/', 'n.', '主题公园', 'We went on lots of rides at the theme park.', '我们在主题公园玩了很多项目。'],
   ['circus', '/ˈsɜː.kəs/', 'n.', '马戏团', 'The clowns at the circus were funny.', '马戏团的小丑很搞笑。'],
   ['magic', '/ˈmædʒ.ɪk/', 'n.', '魔术；魔法', 'He can do magic tricks.', '他会变魔术。'],

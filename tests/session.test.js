@@ -90,3 +90,9 @@ test('拼写判定：忽略大小写、首尾空格、多余空格、弯引号�
   assert.equal(isSpellingCorrect('aple', 'apple'), false);
   assert.equal(isSpellingCorrect('', 'apple'), false);
 });
+
+test('拼写判定忽略句点：am / pm 可以对上 a.m. / p.m.', () => {
+  assert.equal(isSpellingCorrect('am', 'a.m.'), true);
+  assert.equal(isSpellingCorrect('P.M', 'p.m.'), true);
+  assert.equal(isSpellingCorrect('.', 'a.m.'), false);
+});

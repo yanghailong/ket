@@ -29,6 +29,8 @@ let appState = null;
 let appStorage = null;
 let appWarning = null;
 let viewTimers = [];
+// 已结算但还没展示的奖励事件：不管孩子从哪条路离开题目页，下一次渲染都会弹出来
+let pendingEvents = [];
 
 export function getState() {
   return appState;
@@ -73,7 +75,8 @@ function navEl(view) {
 
 export function go(view) {
   clearViewTimers();
-  const events = refreshDay();
+  const events = [...pendingEvents, ...refreshDay()];
+  pendingEvents = [];
   const banner = appWarning ? h('div', { class: 'banner' }, WARNINGS[appWarning]) : '';
   document.getElementById('app').replaceChildren(banner, VIEWS[view](), navEl(view));
   window.scrollTo(0, 0);
@@ -83,18 +86,13 @@ export function go(view) {
 export function answer(id, kind, ok) {
   const r = settle(recordAnswer(appState, id, kind, ok));
   commit(r.state);
-  return r.events;
+  pendingEvents.push(...r.events);
 }
 
-export function nextOrHome(view, events) {
+export function nextOrHome(view) {
   const t = appState.today;
   const left = view === 'screen' ? remaining(t.screenIds, t.screenDone) : remaining(t.reviewIds, t.reviewDone);
-  if (left.length > 0) {
-    go(view);
-    return;
-  }
-  go('home');
-  showEvents(events);
+  go(left.length > 0 ? view : 'home');
 }
 
 export function boot() {

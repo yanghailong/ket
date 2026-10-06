@@ -266,6 +266,20 @@ SCENARIOS.push(async function fullDay() {
   win().localStorage.clear();
 });
 
+SCENARIOS.push(async function quickLeave() {
+  // 最后一题答完立刻点"← 首页"，奖励提示和打卡庆祝也不能丢
+  const today = await seedReview({ checks: ['dad'] });
+  byText('button', '开始').click();
+  await sleep(50);
+  correctChoice().click();
+  byText('button', '← 首页').click();
+  await sleep(50);
+  check('快速返回首页仍弹出任务提示', qa('.toast').some(t => t.textContent.includes('完成复习任务')));
+  check('快速返回首页仍弹出打卡庆祝', !!doc().querySelector('.overlay'));
+  doc().querySelector('.overlay') && doc().querySelector('.overlay button').click();
+  win().localStorage.clear();
+});
+
 (async () => {
   for (const sc of SCENARIOS) {
     try { await sc(); } catch (e) { results.push(`FAIL ${sc.name} 抛出异常 — ${e && e.stack || e}`); }

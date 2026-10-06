@@ -18,10 +18,9 @@ export function renderReview() {
   }
   const word = WORD_BY_ID.get(ids[0]);
   const header = quizHeader('🔁 复习', t.reviewIds.length - ids.length, t.reviewIds.length);
-  let events = [];
-  const next = () => nextOrHome('review', events);
+  const next = () => nextOrHome('review');
   const afterChoice = kind => ok => {
-    events = answer(word.id, kind, ok);
+    answer(word.id, kind, ok);
     later(next, ok ? 700 : 1500);
   };
 
@@ -38,7 +37,7 @@ export function renderReview() {
     if (s.settings.spelling) {
       const q = spellQuestion(word, {
         onResult: ok => {
-          events = answer(word.id, 'review', ok);
+          answer(word.id, 'review', ok);
           if (ok) later(next, 800);
         },
         onNext: next,

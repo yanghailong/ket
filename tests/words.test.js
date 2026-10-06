@@ -38,3 +38,13 @@ test('validateWords 能发现常见错误', () => {
 test('词库总数在 1400–1600 之间', () => {
   assert.ok(WORDS.length >= 1400 && WORDS.length <= 1600, `当前 ${WORDS.length} 词`);
 });
+
+test('中文释义互不相同（拼写题只看中文，必须有唯一答案）', () => {
+  const seen = new Map();
+  const dups = [];
+  for (const w of WORDS) {
+    if (seen.has(w.zh)) dups.push(`${seen.get(w.zh)} / ${w.en}：${w.zh}`);
+    else seen.set(w.zh, w.en);
+  }
+  assert.deepEqual(dups, []);
+});

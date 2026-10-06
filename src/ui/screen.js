@@ -22,8 +22,8 @@ export function renderScreen() {
       prompt: wordPrompt(word),
       timerSec: s.settings.timerSec,
       onAnswer: ok => {
-        const events = answer(word.id, 'screen', ok);
-        later(() => nextOrHome('screen', events), ok ? 700 : 1500);
+        answer(word.id, 'screen', ok);
+        later(() => nextOrHome('screen'), ok ? 700 : 1500);
       },
     }));
 }

@@ -54,7 +54,7 @@ export function settle(state) {
 }
 
 export function normalizeSpelling(s) {
-  return s.trim().toLowerCase().replace(/[‘’ʼ]/g, "'").replace(/\s+/g, ' ');
+  return s.trim().toLowerCase().replace(/[‘’ʼ]/g, "'").replace(/\./g, '').replace(/\s+/g, ' ');
 }
 
 export function isSpellingCorrect(input, en) {

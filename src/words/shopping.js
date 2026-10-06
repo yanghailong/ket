@@ -37,7 +37,7 @@ export const W_SHOPPING = [
   ['trolley', '/ˈtrɒl.i/', 'n.', '手推车', 'Get a trolley. We need lots of things.', '推辆手推车吧，我们要买很多东西。'],
   ['queue', '/kjuː/', 'n.', '队；排队', 'There is a long queue at the checkout.', '收银台排着长队。'],
   ['size', '/saɪz/', 'n.', '尺码；大小', 'What size are your shoes?', '你穿多大码的鞋？'],
-  ['gift', '/ɡɪft/', 'n.', '礼物', 'This is a gift for you.', '这是送你的礼物。'],
+  ['gift', '/ɡɪft/', 'n.', '礼品；天赋', 'This is a gift for you.', '这是送你的礼物。'],
   ['free', '/friː/', 'adj.', '免费的；空闲的', 'The museum is free on Sundays.', '博物馆星期天免费。'],
   ['packet', '/ˈpæk.ɪt/', 'n.', '小包；小袋', 'I bought a packet of biscuits.', '我买了一包饼干。'],
   ['jar', '/dʒɑːr/', 'n.', '罐子；广口瓶', 'There is a jar of honey on the table.', '桌上有一罐蜂蜜。'],

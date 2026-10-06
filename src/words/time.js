@@ -45,7 +45,7 @@ export const W_TIME = [
   ['half past', '/ˈhɑːf ˌpɑːst/', 'phr.', '……点半', 'The film starts at half past six.', '电影六点半开始。'],
   ['quarter', '/ˈkwɔː.tər/', 'n.', '一刻钟；四分之一', 'It is a quarter past three.', '现在三点一刻。'],
   ['a.m.', '/ˌeɪ ˈem/', 'adv.', '上午', 'The shop opens at 9 a.m.', '商店上午九点开门。'],
-  ['p.m.', '/ˌpiː ˈem/', 'adv.', '下午', 'The class finishes at 4 p.m.', '课下午四点结束。'],
+  ['p.m.', '/ˌpiː ˈem/', 'adv.', '下午（写在钟点后）', 'The class finishes at 4 p.m.', '课下午四点结束。'],
   ['date', '/deɪt/', 'n.', '日期', "What's the date today?", '今天几号？'],
   ['calendar', '/ˈkæl.ən.dər/', 'n.', '日历', 'Write the date on the calendar.', '把日期写在日历上。'],
   ['diary', '/ˈdaɪə.ri/', 'n.', '日记；日程本', 'I write in my diary every night.', '我每晚写日记。'],

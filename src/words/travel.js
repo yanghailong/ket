@@ -12,7 +12,7 @@ export const W_TRAVEL = [
   ['bus', '/bʌs/', 'n.', '公共汽车', 'I go to school by bus.', '我坐公交车上学。'],
   ['train', '/treɪn/', 'n.', '火车', 'The train leaves at nine.', '火车九点出发。'],
   ['plane', '/pleɪn/', 'n.', '飞机', 'We went to London by plane.', '我们坐飞机去了伦敦。'],
-  ['bike', '/baɪk/', 'n.', '自行车', 'I ride my bike in the park.', '我在公园骑车。'],
+  ['bike', '/baɪk/', 'n.', '自行车（口语）', 'I ride my bike in the park.', '我在公园骑车。'],
   ['bicycle', '/ˈbaɪ.sɪ.kəl/', 'n.', '自行车', 'She bought a new bicycle.', '她买了一辆新自行车。'],
   ['motorbike', '/ˈməʊ.tə.baɪk/', 'n.', '摩托车', 'My uncle rides a motorbike.', '我叔叔骑摩托车。'],
   ['taxi', '/ˈtæk.si/', 'n.', '出租车', "Let's take a taxi to the station.", '我们打车去车站吧。'],
