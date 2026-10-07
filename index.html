@@ -1,0 +1,2805 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KET 单词找回</title>
+<style>
+:root {
+  --bg: #fff8ef;
+  --card: #ffffff;
+  --ink: #2d2a32;
+  --muted: #8a8494;
+  --line: #e9e2ee;
+  --primary: #ff8a3d;
+  --primary-dark: #e86f1f;
+  --primary-soft: #fff0e4;
+  --right: #3cb371;
+  --right-soft: #e7f7ed;
+  --wrong: #e5534b;
+  --wrong-soft: #fdecea;
+  --s-known: #4caf7a;
+  --s-recovered: #4a90e2;
+  --s-forgotten: #f2a33a;
+  --s-new: #d9d4de;
+  --radius: 20px;
+  --shadow: 0 4px 14px rgba(80, 60, 30, 0.08);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: -apple-system, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  font-size: 18px; line-height: 1.5; -webkit-tap-highlight-color: transparent;
+}
+#app { max-width: 720px; margin: 0 auto; padding: 16px 16px 104px; min-height: 100vh; }
+h1 { font-size: 28px; margin: 8px 0 16px; }
+h2 { font-size: 20px; margin: 0 0 6px; }
+h3 { font-size: 17px; margin: 16px 0 8px; }
+.muted { color: var(--muted); }
+.center { text-align: center; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 16px; }
+
+.btn { min-height: 48px; padding: 0 22px; border: none; border-radius: 999px; font-size: 18px; font-weight: 600; cursor: pointer; background: #efe9f3; color: var(--ink); }
+.btn.primary { background: var(--primary); color: #fff; }
+.btn.primary:active { background: var(--primary-dark); }
+.btn.danger { background: var(--wrong); color: #fff; }
+.btn.big { width: 100%; font-size: 20px; margin-top: 16px; }
+.btn:disabled { opacity: .5; cursor: default; }
+
+.banner { background: #fff3c4; border: 1px solid #f0d36b; border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; font-size: 15px; }
+
+.topbar { display: flex; gap: 10px; justify-content: flex-end; }
+.pill { background: var(--card); border-radius: 999px; padding: 6px 14px; box-shadow: var(--shadow); font-weight: 600; }
+.task { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.task.done { background: var(--right-soft); }
+.check { font-size: 34px; color: var(--right); font-weight: 800; padding: 0 8px; }
+.progress { display: flex; height: 18px; border-radius: 999px; overflow: hidden; background: var(--s-new); margin: 12px 0; }
+.seg { display: block; height: 100%; }
+.s-known { background: var(--s-known); }
+.s-recovered { background: var(--s-recovered); }
+.s-forgotten { background: var(--s-forgotten); }
+.s-new { background: var(--s-new); }
+.legend { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; font-size: 16px; }
+.dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; }
+
+.nav { position: fixed; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; gap: 8px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: rgba(255, 255, 255, .96); box-shadow: 0 -2px 10px rgba(0, 0, 0, .06); z-index: 10; }
+.nav button { flex: 1; max-width: 200px; min-height: 52px; border: none; background: none; border-radius: 14px; font-size: 16px; cursor: pointer; color: var(--muted); }
+.nav button.active { background: var(--primary-soft); color: var(--primary-dark); font-weight: 700; }
+
+.quiz-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.quiz-head .bar { flex: 1; height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; }
+.quiz-head .bar span { display: block; height: 100%; background: var(--primary); }
+.back { min-height: 48px; border: none; background: none; font-size: 16px; color: var(--muted); cursor: pointer; padding: 0 4px; }
+.prompt { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 140px; flex-wrap: wrap; }
+.word { font-size: 40px; font-weight: 700; letter-spacing: .5px; word-break: break-word; text-align: center; }
+.speak { min-width: 48px; min-height: 48px; border: none; border-radius: 50%; background: var(--primary-soft); font-size: 22px; cursor: pointer; }
+.speak.disabled { opacity: .4; }
+.speak.huge { width: 96px; height: 96px; font-size: 44px; }
+.timer { height: 8px; background: var(--line); border-radius: 999px; overflow: hidden; margin-bottom: 16px; }
+.timer-fill { height: 100%; width: 100%; background: var(--s-forgotten); transition: width .1s linear; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 480px) { .choices { grid-template-columns: 1fr; } }
+.choice { min-height: 64px; padding: 10px 14px; border: 2px solid var(--line); background: var(--card); border-radius: 16px; font-size: 20px; cursor: pointer; box-shadow: var(--shadow); color: var(--ink); }
+.choice:disabled { cursor: default; color: var(--ink); }
+.choice.right, .spell-input.right { border-color: var(--right); background: var(--right-soft); }
+.choice.wrong, .spell-input.wrong { border-color: var(--wrong); background: var(--wrong-soft); animation: shake .35s; }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+.wordcard .word { text-align: left; }
+.ipa { color: var(--muted); display: flex; align-items: center; gap: 10px; margin: 4px 0 8px; }
+.zh { font-size: 24px; font-weight: 600; margin-bottom: 12px; }
+.zh.big { font-size: 32px; text-align: center; margin-bottom: 0; }
+.example { background: #faf6fb; border-radius: 14px; padding: 12px 14px; }
+.example p { margin: 4px 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.spell { display: flex; flex-direction: column; gap: 14px; text-align: center; }
+.spell-input { min-height: 56px; font-size: 26px; text-align: center; border: 2px solid var(--line); border-radius: 14px; padding: 0 12px; width: 100%; }
+.feedback b { font-size: 26px; color: var(--right); }
+
+.filters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+.filters input { grid-column: 1 / -1; }
+select, input[type="text"], input[type="search"] { min-height: 48px; font-size: 17px; border-radius: 12px; border: 1px solid var(--line); padding: 0 12px; background: #fff; color: var(--ink); }
+.wb-row { background: var(--card); border-radius: 14px; margin-bottom: 8px; box-shadow: var(--shadow); }
+.wb-row summary { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; list-style: none; min-height: 48px; }
+.wb-row summary::-webkit-details-marker { display: none; }
+.wb-row summary .muted { flex: 1; }
+.wb-row .details { padding: 0 16px 16px; }
+.badge { font-size: 13px; padding: 2px 10px; border-radius: 999px; color: #fff; white-space: nowrap; }
+.badge.s-new { color: var(--ink); }
+
+.field { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; flex-wrap: wrap; }
+.cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.cal-day { border-radius: 12px; background: #f5f0f7; padding: 6px 2px; text-align: center; font-size: 13px; }
+.cal-day.ok { background: var(--right-soft); }
+.cal-day .mark { font-size: 20px; }
+.acc { width: 100%; border-collapse: collapse; font-size: 15px; }
+.acc th, .acc td { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+
+.toast { position: fixed; left: 50%; bottom: 110px; transform: translateX(-50%); background: rgba(45, 42, 50, .92); color: #fff; padding: 12px 20px; border-radius: 999px; z-index: 30; font-size: 16px; animation: fadein .2s; max-width: calc(100% - 32px); text-align: center; }
+.overlay { position: fixed; inset: 0; background: rgba(45, 42, 50, .45); display: flex; align-items: center; justify-content: center; z-index: 20; overflow: hidden; padding: 16px; }
+.celebrate { text-align: center; width: min(360px, 100%); animation: pop .35s ease-out; position: relative; z-index: 1; }
+.big-emoji { font-size: 64px; }
+.gain { font-size: 36px; font-weight: 800; color: var(--primary-dark); margin: 8px 0; }
+.confetti { position: absolute; top: -40px; font-size: 26px; animation: fall 2.6s linear forwards; }
+@keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+@keyframes pop { from { transform: scale(.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ---- src/dates.js ----
+function todayStr(d = new Date()) {
+  return formatYMD(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+
+function formatYMD(y, m, d) {
+  return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function ymdToUTC(s) {
+  const [y, m, d] = s.split('-').map(Number);
+  return Date.UTC(y, m - 1, d);
+}
+
+// 用 UTC 计算，避免夏令时导致少一天或多一天
+function addDays(s, n) {
+  const t = new Date(ymdToUTC(s) + n * 86400000);
+  return formatYMD(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate());
+}
+
+// ---- src/words/topics.js ----
+// 顺序就是筛查顺序；target 是这个话题的目标词数
+const TOPICS = [
+  { key: 'family', zh: '家庭与朋友', target: 50 },
+  { key: 'school', zh: '学校与学习', target: 70 },
+  { key: 'food', zh: '食物与饮料', target: 100 },
+  { key: 'home', zh: '房屋与家居', target: 70 },
+  { key: 'clothes', zh: '衣服与配饰', target: 40 },
+  { key: 'body', zh: '身体与健康', target: 50 },
+  { key: 'sport', zh: '运动', target: 50 },
+  { key: 'hobbies', zh: '爱好与休闲', target: 60 },
+  { key: 'travel', zh: '旅行与交通', target: 70 },
+  { key: 'places', zh: '地点与建筑', target: 70 },
+  { key: 'weather', zh: '天气', target: 30 },
+  { key: 'animals', zh: '动物', target: 50 },
+  { key: 'nature', zh: '自然与环境', target: 40 },
+  { key: 'shopping', zh: '购物与金钱', target: 50 },
+  { key: 'work', zh: '工作与职业', target: 50 },
+  { key: 'tech', zh: '科技与通讯', target: 40 },
+  { key: 'time', zh: '时间与日期', target: 60 },
+  { key: 'numbers', zh: '数字与数量', target: 50 },
+  { key: 'feelings', zh: '情感与性格', target: 50 },
+  { key: 'verbs', zh: '常用动词', target: 200 },
+  { key: 'describe', zh: '常用形容词与副词', target: 150 },
+  { key: 'function', zh: '功能词', target: 150 },
+];
+
+// ---- src/words/family.js ----
+// 家庭与朋友 · 目标 50 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_FAMILY = [
+  ['family', '/ˈfæm.əl.i/', 'n.', '家庭；家人', 'There are four people in my family.', '我家有四口人。'],
+  ['mother', '/ˈmʌð.ər/', 'n.', '母亲', 'My mother is a teacher.', '我妈妈是一名老师。'],
+  ['father', '/ˈfɑː.ðər/', 'n.', '父亲', 'My father works in a bank.', '我爸爸在银行工作。'],
+  ['mum', '/mʌm/', 'n.', '妈妈', 'Mum, where are my shoes?', '妈妈，我的鞋在哪儿？'],
+  ['dad', '/dæd/', 'n.', '爸爸', 'My dad can cook very well.', '我爸爸做饭很好吃。'],
+  ['parent', '/ˈpeə.rənt/', 'n.', '父亲或母亲', 'My parents are at work today.', '我爸妈今天在上班。'],
+  ['brother', '/ˈbrʌð.ər/', 'n.', '兄弟', 'I have one brother.', '我有一个兄弟。'],
+  ['sister', '/ˈsɪs.tər/', 'n.', '姐妹', 'My sister is older than me.', '我姐姐比我大。'],
+  ['son', '/sʌn/', 'n.', '儿子', 'They have a son and a daughter.', '他们有一个儿子和一个女儿。'],
+  ['daughter', '/ˈdɔː.tər/', 'n.', '女儿', 'Their daughter is five years old.', '他们的女儿五岁了。'],
+  ['grandmother', '/ˈɡræn.mʌð.ər/', 'n.', '祖母；外祖母', 'My grandmother lives with us.', '我奶奶和我们住在一起。'],
+  ['grandfather', '/ˈɡræn.fɑː.ðər/', 'n.', '祖父；外祖父', 'My grandfather likes fishing.', '我爷爷喜欢钓鱼。'],
+  ['grandma', '/ˈɡræn.mɑː/', 'n.', '奶奶；外婆', 'Grandma makes the best cakes.', '奶奶做的蛋糕最好吃。'],
+  ['grandpa', '/ˈɡræn.pɑː/', 'n.', '爷爷；外公', 'Grandpa tells me funny stories.', '爷爷给我讲有趣的故事。'],
+  ['grandparent', '/ˈɡræn.peə.rənt/', 'n.', '祖父母；外祖父母', 'I visit my grandparents every Sunday.', '我每个星期天去看望祖父母。'],
+  ['grandson', '/ˈɡræn.sʌn/', 'n.', '孙子；外孙', 'Their grandson is a doctor.', '他们的孙子是一名医生。'],
+  ['granddaughter', '/ˈɡræn.dɔː.tər/', 'n.', '孙女；外孙女', 'She is their only granddaughter.', '她是他们唯一的孙女。'],
+  ['aunt', '/ɑːnt/', 'n.', '阿姨；姑姑', 'My aunt lives in London.', '我的阿姨住在伦敦。'],
+  ['uncle', '/ˈʌŋ.kəl/', 'n.', '叔叔；舅舅', 'My uncle has a big dog.', '我叔叔有一只大狗。'],
+  ['cousin', '/ˈkʌz.ən/', 'n.', '堂/表兄弟姐妹', 'My cousin is ten years old.', '我的表哥十岁。'],
+  ['husband', '/ˈhʌz.bənd/', 'n.', '丈夫', 'Her husband is very tall.', '她丈夫个子很高。'],
+  ['wife', '/waɪf/', 'n.', '妻子', 'His wife is from Spain.', '他妻子来自西班牙。'],
+  ['child', '/tʃaɪld/', 'n.', '孩子；儿童', 'Every child needs a friend.', '每个孩子都需要朋友。'],
+  ['baby', '/ˈbeɪ.bi/', 'n.', '婴儿', 'The baby is sleeping now.', '宝宝正在睡觉。'],
+  ['kid', '/kɪd/', 'n.', '小孩', 'The kids are playing in the garden.', '孩子们在花园里玩。'],
+  ['boy', '/bɔɪ/', 'n.', '男孩', 'That boy is in my class.', '那个男孩和我同班。'],
+  ['girl', '/ɡɜːl/', 'n.', '女孩', 'The girl with long hair is Anna.', '长头发的女孩是安娜。'],
+  ['man', '/mæn/', 'n.', '男人', 'A man is waiting at the door.', '一个男人在门口等着。'],
+  ['woman', '/ˈwʊm.ən/', 'n.', '女人', 'The woman in the red coat is my aunt.', '穿红大衣的女人是我阿姨。'],
+  ['adult', '/ˈæd.ʌlt/', 'n.', '成年人', 'Tickets are ten pounds for adults.', '成人票十英镑。'],
+  ['teenager', '/ˈtiːnˌeɪ.dʒər/', 'n.', '青少年', 'My brother is a teenager now.', '我哥哥现在是青少年了。'],
+  ['person', '/ˈpɜː.sən/', 'n.', '人', 'She is a very kind person.', '她是一个非常善良的人。'],
+  ['friend', '/frend/', 'n.', '朋友', 'Tom is my best friend.', 'Tom 是我最好的朋友。'],
+  ['boyfriend', '/ˈbɔɪ.frend/', 'n.', '男朋友', 'Her boyfriend plays the guitar.', '她男朋友会弹吉他。'],
+  ['girlfriend', '/ˈɡɜːl.frend/', 'n.', '女朋友', 'His girlfriend is a nurse.', '他女朋友是一名护士。'],
+  ['pen friend', '/ˈpen ˌfrend/', 'n.', '笔友', 'I write to my pen friend in Canada.', '我给加拿大的笔友写信。'],
+  ['neighbour', '/ˈneɪ.bər/', 'n.', '邻居', 'Our neighbour has three cats.', '我们的邻居养了三只猫。'],
+  ['guest', '/ɡest/', 'n.', '客人', 'We have two guests for dinner.', '我们有两位客人来吃晚饭。'],
+  ['member', '/ˈmem.bər/', 'n.', '成员', 'I am a member of the school club.', '我是学校俱乐部的成员。'],
+  ['name', '/neɪm/', 'n.', '名字', 'What is your name?', '你叫什么名字？'],
+  ['first name', '/ˈfɜːst ˌneɪm/', 'n.', '名（不含姓）', 'My first name is Lucy.', '我的名字叫 Lucy。'],
+  ['surname', '/ˈsɜː.neɪm/', 'n.', '姓', 'Can you spell your surname, please?', '请你拼一下你的姓好吗？'],
+  ['age', '/eɪdʒ/', 'n.', '年龄', 'Children of all ages can join.', '各个年龄的孩子都可以参加。'],
+  ['birthday', '/ˈbɜːθ.deɪ/', 'n.', '生日', 'Happy birthday to you!', '祝你生日快乐！'],
+  ['get married', '/ɡet ˈmær.id/', 'phr.', '结婚', 'They got married last year.', '他们去年结婚了。'],
+  ['be born', '/bi ˈbɔːn/', 'phr.', '出生', 'I was born in 2015.', '我出生于 2015 年。'],
+  ['together', '/təˈɡeð.ər/', 'adv.', '一起', 'We always have dinner together.', '我们总是一起吃晚饭。'],
+  ['alone', '/əˈləʊn/', 'adv.', '独自', 'She lives alone in a small flat.', '她独自住在一套小公寓里。'],
+  ['Mr', '/ˈmɪs.tər/', 'n.', '先生（用于姓前）', 'Mr Brown is our English teacher.', '布朗先生是我们的英语老师。'],
+  ['Mrs', '/ˈmɪs.ɪz/', 'n.', '太太（用于姓前）', 'Mrs Green lives next door.', '格林太太住在隔壁。'],
+];
+
+// ---- src/words/school.js ----
+// 学校与学习 · 目标 70 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_SCHOOL = [
+  ['school', '/skuːl/', 'n.', '学校', 'I walk to school every day.', '我每天走路上学。'],
+  ['class', '/klɑːs/', 'n.', '班级；课', 'There are 30 students in my class.', '我们班有 30 个学生。'],
+  ['classroom', '/ˈklɑːs.ruːm/', 'n.', '教室', 'Our classroom is on the second floor.', '我们的教室在二楼。'],
+  ['lesson', '/ˈles.ən/', 'n.', '课；一节课', 'Our first lesson today is maths.', '我们今天第一节课是数学。'],
+  ['homework', '/ˈhəʊm.wɜːk/', 'n.', '家庭作业', 'I do my homework after dinner.', '我晚饭后做作业。'],
+  ['teacher', '/ˈtiː.tʃər/', 'n.', '老师', 'Our teacher is very friendly.', '我们的老师很友好。'],
+  ['student', '/ˈstjuː.dənt/', 'n.', '学生', 'She is a student at this school.', '她是这所学校的学生。'],
+  ['pupil', '/ˈpjuː.pəl/', 'n.', '小学生；学生', 'The school has 500 pupils.', '这所学校有 500 名学生。'],
+  ['head teacher', '/ˌhed ˈtiː.tʃər/', 'n.', '校长', 'The head teacher spoke to all the students.', '校长对全体学生讲了话。'],
+  ['classmate', '/ˈklɑːs.meɪt/', 'n.', '同班同学', 'Jack is my classmate.', 'Jack 是我的同班同学。'],
+  ['subject', '/ˈsʌb.dʒekt/', 'n.', '科目；主题', 'What is your favourite subject?', '你最喜欢的科目是什么？'],
+  ['maths', '/mæθs/', 'n.', '数学', 'I find maths quite easy.', '我觉得数学挺简单的。'],
+  ['English', '/ˈɪŋ.ɡlɪʃ/', 'n.', '英语', 'We have English three times a week.', '我们每周上三次英语课。'],
+  ['science', '/ˈsaɪ.əns/', 'n.', '科学', 'In science we learn about plants.', '我们在科学课上学习植物知识。'],
+  ['history', '/ˈhɪs.tər.i/', 'n.', '历史', 'I like learning about history.', '我喜欢学历史。'],
+  ['geography', '/dʒiˈɒɡ.rə.fi/', 'n.', '地理', 'In geography we study maps.', '我们在地理课上学看地图。'],
+  ['art', '/ɑːt/', 'n.', '美术；艺术', 'We painted pictures in art today.', '我们今天美术课画了画。'],
+  ['music', '/ˈmjuː.zɪk/', 'n.', '音乐', 'I listen to music every evening.', '我每天晚上听音乐。'],
+  ['PE', '/ˌpiː ˈiː/', 'n.', '体育课', 'We play football in PE.', '我们在体育课上踢足球。'],
+  ['biology', '/baɪˈɒl.ə.dʒi/', 'n.', '生物学', 'In biology we looked at insects.', '我们在生物课上观察了昆虫。'],
+  ['chemistry', '/ˈkem.ɪ.stri/', 'n.', '化学', 'My sister studies chemistry at university.', '我姐姐在大学学化学。'],
+  ['physics', '/ˈfɪz.ɪks/', 'n.', '物理', 'Physics is a difficult subject.', '物理是一门难的科目。'],
+  ['drama', '/ˈdrɑː.mə/', 'n.', '戏剧', 'We are doing a play in drama class.', '我们在戏剧课上排一出戏。'],
+  ['language', '/ˈlæŋ.ɡwɪdʒ/', 'n.', '语言', 'How many languages can you speak?', '你会说几种语言？'],
+  ['test', '/test/', 'n.', '测验；考试', 'We have a spelling test on Friday.', '我们星期五有拼写测验。'],
+  ['exam', '/ɪɡˈzæm/', 'n.', '考试', 'I need to study for my exam.', '我需要为考试复习。'],
+  ['question', '/ˈkwes.tʃən/', 'n.', '问题', 'Can I ask you a question?', '我能问你一个问题吗？'],
+  ['answer', '/ˈɑːn.sər/', 'n.', '答案；回答', 'Write your answers on the paper.', '把答案写在纸上。'],
+  ['page', '/peɪdʒ/', 'n.', '页', 'Open your books at page ten.', '把书翻到第十页。'],
+  ['book', '/bʊk/', 'n.', '书', 'This book is about animals.', '这本书是关于动物的。'],
+  ['notebook', '/ˈnəʊt.bʊk/', 'n.', '笔记本', 'Write the new words in your notebook.', '把生词写在笔记本上。'],
+  ['dictionary', '/ˈdɪk.ʃən.ər.i/', 'n.', '词典', 'Look up the word in the dictionary.', '在词典里查这个词。'],
+  ['pen', '/pen/', 'n.', '钢笔；笔', 'Can I borrow your pen?', '我能借你的笔吗？'],
+  ['pencil', '/ˈpen.səl/', 'n.', '铅笔', 'Please draw with a pencil.', '请用铅笔画。'],
+  ['pencil case', '/ˈpen.səl ˌkeɪs/', 'n.', '笔袋；铅笔盒', 'My pencil case is blue.', '我的笔袋是蓝色的。'],
+  ['rubber', '/ˈrʌb.ər/', 'n.', '橡皮', 'I need a rubber to fix my mistake.', '我需要一块橡皮改错。'],
+  ['ruler', '/ˈruː.lər/', 'n.', '尺子', 'Draw a line with your ruler.', '用尺子画一条线。'],
+  ['schoolbag', '/ˈskuːl.bæɡ/', 'n.', '书包', 'My schoolbag is very heavy today.', '我今天的书包很重。'],
+  ['desk', '/desk/', 'n.', '书桌；课桌', 'Put your books on your desk.', '把书放在课桌上。'],
+  ['board', '/bɔːd/', 'n.', '黑板；白板', 'The teacher wrote on the board.', '老师在黑板上写字。'],
+  ['paper', '/ˈpeɪ.pər/', 'n.', '纸', 'I need a piece of paper.', '我需要一张纸。'],
+  ['scissors', '/ˈsɪz.əz/', 'n.', '剪刀', 'Cut the picture with scissors.', '用剪刀把图片剪下来。'],
+  ['calculator', '/ˈkæl.kjə.leɪ.tər/', 'n.', '计算器', 'You can use a calculator in this test.', '这次测验可以用计算器。'],
+  ['timetable', '/ˈtaɪmˌteɪ.bəl/', 'n.', '课程表；时刻表', 'Look at the timetable for Monday.', '看看星期一的课程表。'],
+  ['term', '/tɜːm/', 'n.', '学期', 'The new term starts in September.', '新学期九月开始。'],
+  ['break', '/breɪk/', 'n.', '课间休息；打破', 'We play outside at break.', '课间我们在外面玩。'],
+  ['playground', '/ˈpleɪ.ɡraʊnd/', 'n.', '操场；游乐场', 'The children are in the playground.', '孩子们在操场上。'],
+  ['uniform', '/ˈjuː.nɪ.fɔːm/', 'n.', '校服；制服', 'We wear a uniform to school.', '我们穿校服上学。'],
+  ['course', '/kɔːs/', 'n.', '课程', 'She is doing a cooking course.', '她在上烹饪课。'],
+  ['college', '/ˈkɒl.ɪdʒ/', 'n.', '学院；大学', 'My brother goes to college in London.', '我哥哥在伦敦上大学。'],
+  ['university', '/ˌjuː.nɪˈvɜː.sə.ti/', 'n.', '大学', 'She wants to go to university.', '她想上大学。'],
+  ['learn', '/lɜːn/', 'v.', '学习；学会', 'I want to learn to swim.', '我想学游泳。'],
+  ['study', '/ˈstʌd.i/', 'v.', '学习；研究', 'I study English every day.', '我每天学英语。'],
+  ['teach', '/tiːtʃ/', 'v.', '教', 'My mum teaches maths.', '我妈妈教数学。'],
+  ['spell', '/spel/', 'v.', '拼写', 'How do you spell your name?', '你的名字怎么拼？'],
+  ['practise', '/ˈpræk.tɪs/', 'v.', '练习', 'I practise the piano every day.', '我每天练钢琴。'],
+  ['revise', '/rɪˈvaɪz/', 'v.', '复习', 'I need to revise for the test.', '我需要为测验复习。'],
+  ['pass', '/pɑːs/', 'v.', '通过（考试）；传递', 'I hope I pass the exam.', '我希望我能通过考试。'],
+  ['fail', '/feɪl/', 'v.', '不及格；失败', "Don't worry, you won't fail.", '别担心，你不会不及格的。'],
+  ['mark', '/mɑːk/', 'n.', '分数；记号', 'I got a good mark in English.', '我英语得了好分数。'],
+  ['example', '/ɪɡˈzɑːm.pəl/', 'n.', '例子', 'Can you give me an example?', '你能给我举个例子吗？'],
+  ['word', '/wɜːd/', 'n.', '单词；词', 'What does this word mean?', '这个词是什么意思？'],
+  ['sentence', '/ˈsen.təns/', 'n.', '句子', 'Write a sentence with this word.', '用这个词写一个句子。'],
+  ['letter', '/ˈlet.ər/', 'n.', '字母；信', 'A is the first letter of the alphabet.', 'A 是字母表的第一个字母。'],
+  ['project', '/ˈprɒdʒ.ekt/', 'n.', '课题；项目', 'We are doing a project about the sea.', '我们在做一个关于大海的课题。'],
+  ['mistake', '/mɪˈsteɪk/', 'n.', '错误', 'I made a mistake in my homework.', '我作业里出了一个错。'],
+  ['correct', '/kəˈrekt/', 'adj.', '正确的', 'All your answers are correct.', '你的答案全对。'],
+  ['note', '/nəʊt/', 'n.', '笔记；便条', 'I left a note for my mum.', '我给妈妈留了张便条。'],
+  ['glue', '/ɡluː/', 'n.', '胶水', 'Stick the picture with glue.', '用胶水把图片粘上。'],
+  ['translate', '/trænzˈleɪt/', 'v.', '翻译', 'Can you translate this into Chinese?', '你能把这个翻译成中文吗？'],
+];
+
+// ---- src/words/food.js ----
+// 食物与饮料 · 目标 100 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_FOOD = [
+  ['food', '/fuːd/', 'n.', '食物', 'What is your favourite food?', '你最喜欢的食物是什么？'],
+  ['breakfast', '/ˈbrek.fəst/', 'n.', '早餐', 'I have eggs for breakfast.', '我早餐吃鸡蛋。'],
+  ['lunch', '/lʌntʃ/', 'n.', '午餐', 'We have lunch at school.', '我们在学校吃午饭。'],
+  ['dinner', '/ˈdɪn.ər/', 'n.', '晚餐；正餐', 'Dinner is ready!', '晚饭做好了！'],
+  ['meal', '/miːl/', 'n.', '一顿饭', 'Breakfast is the most important meal.', '早餐是最重要的一餐。'],
+  ['snack', '/snæk/', 'n.', '零食；小吃', 'I have an apple as a snack.', '我吃一个苹果当零食。'],
+  ['fruit', '/fruːt/', 'n.', '水果', 'Eat more fruit and vegetables.', '多吃水果和蔬菜。'],
+  ['vegetable', '/ˈvedʒ.tə.bəl/', 'n.', '蔬菜', 'Carrots are my favourite vegetable.', '胡萝卜是我最喜欢的蔬菜。'],
+  ['apple', '/ˈæp.əl/', 'n.', '苹果', 'I eat an apple every day.', '我每天吃一个苹果。'],
+  ['banana', '/bəˈnɑː.nə/', 'n.', '香蕉', 'Monkeys love bananas.', '猴子喜欢香蕉。'],
+  ['orange', '/ˈɒr.ɪndʒ/', 'n.', '橙子；橙色', 'Can I have an orange, please?', '我可以吃个橙子吗？'],
+  ['lemon', '/ˈlem.ən/', 'n.', '柠檬', 'This lemon is very sour.', '这个柠檬很酸。'],
+  ['grape', '/ɡreɪp/', 'n.', '葡萄', 'I bought some green grapes.', '我买了一些绿葡萄。'],
+  ['strawberry', '/ˈstrɔː.bər.i/', 'n.', '草莓', 'Strawberries are red and sweet.', '草莓又红又甜。'],
+  ['pear', '/peər/', 'n.', '梨', 'This pear is very juicy.', '这个梨水分很多。'],
+  ['pineapple', '/ˈpaɪnˌæp.əl/', 'n.', '菠萝', 'We had pineapple after dinner.', '晚饭后我们吃了菠萝。'],
+  ['watermelon', '/ˈwɔː.təˌmel.ən/', 'n.', '西瓜', 'Watermelon is great in summer.', '夏天吃西瓜很棒。'],
+  ['cherry', '/ˈtʃer.i/', 'n.', '樱桃', 'There is a cherry on top of the cake.', '蛋糕上面有一颗樱桃。'],
+  ['potato', '/pəˈteɪ.təʊ/', 'n.', '土豆', 'Mum is cooking potatoes.', '妈妈在煮土豆。'],
+  ['tomato', '/təˈmɑː.təʊ/', 'n.', '西红柿', 'I put tomatoes in my salad.', '我在沙拉里放了西红柿。'],
+  ['carrot', '/ˈkær.ət/', 'n.', '胡萝卜', 'Rabbits like carrots.', '兔子喜欢胡萝卜。'],
+  ['onion', '/ˈʌn.jən/', 'n.', '洋葱', 'Cutting onions makes me cry.', '切洋葱让我流眼泪。'],
+  ['bean', '/biːn/', 'n.', '豆子', 'I had beans on toast for lunch.', '我午饭吃了豆子配吐司。'],
+  ['pea', '/piː/', 'n.', '豌豆', 'My little brother hates peas.', '我弟弟讨厌吃豌豆。'],
+  ['mushroom', '/ˈmʌʃ.ruːm/', 'n.', '蘑菇', 'I like mushrooms on my pizza.', '我喜欢披萨上放蘑菇。'],
+  ['salad', '/ˈsæl.əd/', 'n.', '沙拉', 'I would like a chicken salad.', '我想要一份鸡肉沙拉。'],
+  ['rice', '/raɪs/', 'n.', '米饭；大米', 'We often eat rice with fish.', '我们常吃米饭配鱼。'],
+  ['bread', '/bred/', 'n.', '面包', 'Can you buy some bread?', '你能买些面包吗？'],
+  ['toast', '/təʊst/', 'n.', '烤面包片；吐司', 'I had toast and jam for breakfast.', '我早餐吃了吐司和果酱。'],
+  ['noodles', '/ˈnuː.dəlz/', 'n.', '面条', 'I love chicken noodles.', '我很爱吃鸡肉面。'],
+  ['pasta', '/ˈpæs.tə/', 'n.', '意大利面', 'We are having pasta tonight.', '我们今晚吃意大利面。'],
+  ['pizza', '/ˈpiːt.sə/', 'n.', '比萨饼', "Let's order a pizza.", '我们点个比萨吧。'],
+  ['sandwich', '/ˈsæn.wɪdʒ/', 'n.', '三明治', 'I made a cheese sandwich.', '我做了一个奶酪三明治。'],
+  ['burger', '/ˈbɜː.ɡər/', 'n.', '汉堡包', 'He ordered a burger and chips.', '他点了汉堡和薯条。'],
+  ['chips', '/tʃɪps/', 'n.', '炸薯条', 'Fish and chips is a British meal.', '炸鱼薯条是英国的一道菜。'],
+  ['crisps', '/krɪsps/', 'n.', '薯片', "Don't eat too many crisps.", '别吃太多薯片。'],
+  ['popcorn', '/ˈpɒp.kɔːn/', 'n.', '爆米花', 'We ate popcorn at the cinema.', '我们在电影院吃了爆米花。'],
+  ['cereal', '/ˈsɪə.ri.əl/', 'n.', '麦片', 'I eat cereal with milk.', '我吃麦片加牛奶。'],
+  ['egg', '/eɡ/', 'n.', '鸡蛋；蛋', 'How do you like your eggs?', '你的鸡蛋想怎么做？'],
+  ['cheese', '/tʃiːz/', 'n.', '奶酪', 'Mice like cheese.', '老鼠喜欢奶酪。'],
+  ['butter', '/ˈbʌt.ər/', 'n.', '黄油', 'Put some butter on your bread.', '在面包上抹点黄油。'],
+  ['milk', '/mɪlk/', 'n.', '牛奶', 'I drink a glass of milk every morning.', '我每天早上喝一杯牛奶。'],
+  ['yoghurt', '/ˈjɒɡ.ət/', 'n.', '酸奶', 'Strawberry yoghurt is my favourite.', '草莓酸奶是我的最爱。'],
+  ['cream', '/kriːm/', 'n.', '奶油', 'Would you like cream with your cake?', '你的蛋糕要加奶油吗？'],
+  ['ice cream', '/ˌaɪs ˈkriːm/', 'n.', '冰淇淋', 'Can I have a chocolate ice cream?', '我能要一个巧克力冰淇淋吗？'],
+  ['chocolate', '/ˈtʃɒk.lət/', 'n.', '巧克力', 'She gave me a box of chocolates.', '她送了我一盒巧克力。'],
+  ['sweets', '/swiːts/', 'n.', '糖果', 'Too many sweets are bad for your teeth.', '吃太多糖果对牙齿不好。'],
+  ['cake', '/keɪk/', 'n.', '蛋糕', 'We made a birthday cake.', '我们做了一个生日蛋糕。'],
+  ['biscuit', '/ˈbɪs.kɪt/', 'n.', '饼干', 'Would you like a biscuit with your tea?', '喝茶时要来块饼干吗？'],
+  ['cookie', '/ˈkʊk.i/', 'n.', '曲奇饼', 'Grandma baked some cookies.', '奶奶烤了一些曲奇。'],
+  ['pie', '/paɪ/', 'n.', '馅饼', 'Apple pie is delicious.', '苹果派很好吃。'],
+  ['dessert', '/dɪˈzɜːt/', 'n.', '甜点', 'What is for dessert?', '甜点吃什么？'],
+  ['sugar', '/ˈʃʊɡ.ər/', 'n.', '糖', 'Do you take sugar in your tea?', '你的茶里加糖吗？'],
+  ['salt', '/sɒlt/', 'n.', '盐', 'Can you pass the salt, please?', '请把盐递给我好吗？'],
+  ['pepper', '/ˈpep.ər/', 'n.', '胡椒粉；辣椒', 'Add a little salt and pepper.', '加一点盐和胡椒粉。'],
+  ['oil', '/ɔɪl/', 'n.', '油', 'Cook the onions in a little oil.', '用一点油炒洋葱。'],
+  ['honey', '/ˈhʌn.i/', 'n.', '蜂蜜', 'Bees make honey.', '蜜蜂酿蜂蜜。'],
+  ['jam', '/dʒæm/', 'n.', '果酱', 'I like strawberry jam.', '我喜欢草莓果酱。'],
+  ['soup', '/suːp/', 'n.', '汤', 'This tomato soup is hot.', '这碗番茄汤很烫。'],
+  ['meat', '/miːt/', 'n.', '肉', "My sister doesn't eat meat.", '我姐姐不吃肉。'],
+  ['beef', '/biːf/', 'n.', '牛肉', 'We had beef for dinner.', '我们晚饭吃了牛肉。'],
+  ['chicken', '/ˈtʃɪk.ɪn/', 'n.', '鸡肉；鸡', 'Chicken and rice is my favourite meal.', '鸡肉饭是我最喜欢的饭。'],
+  ['lamb', '/læm/', 'n.', '羊肉；小羊', 'We often eat lamb at Easter.', '我们复活节常吃羊肉。'],
+  ['sausage', '/ˈsɒs.ɪdʒ/', 'n.', '香肠', 'I had sausages for breakfast.', '我早餐吃了香肠。'],
+  ['steak', '/steɪk/', 'n.', '牛排', 'Dad cooked steak on the barbecue.', '爸爸在烧烤架上烤了牛排。'],
+  ['water', '/ˈwɔː.tər/', 'n.', '水', 'Drink lots of water every day.', '每天多喝水。'],
+  ['juice', '/dʒuːs/', 'n.', '果汁', 'I would like an orange juice.', '我想要一杯橙汁。'],
+  ['tea', '/tiː/', 'n.', '茶', 'My grandma drinks tea every afternoon.', '我奶奶每天下午喝茶。'],
+  ['coffee', '/ˈkɒf.i/', 'n.', '咖啡', 'My parents drink coffee in the morning.', '我爸妈早上喝咖啡。'],
+  ['lemonade', '/ˌlem.əˈneɪd/', 'n.', '柠檬水；汽水', 'A glass of lemonade, please.', '请来一杯柠檬水。'],
+  ['drink', '/drɪŋk/', 'n.', '饮料；喝', 'Would you like a drink?', '你想喝点什么吗？'],
+  ['bottle', '/ˈbɒt.əl/', 'n.', '瓶子', 'I bought a bottle of water.', '我买了一瓶水。'],
+  ['glass', '/ɡlɑːs/', 'n.', '玻璃杯；玻璃', 'Can I have a glass of milk?', '我能要一杯牛奶吗？'],
+  ['cup', '/kʌp/', 'n.', '杯子', 'Would you like a cup of tea?', '你想喝杯茶吗？'],
+  ['plate', '/pleɪt/', 'n.', '盘子', 'Put the cake on a plate.', '把蛋糕放在盘子里。'],
+  ['bowl', '/bəʊl/', 'n.', '碗', 'I eat a bowl of rice every day.', '我每天吃一碗米饭。'],
+  ['knife', '/naɪf/', 'n.', '刀', 'Be careful with that knife.', '小心那把刀。'],
+  ['fork', '/fɔːk/', 'n.', '叉子', 'Eat your pasta with a fork.', '用叉子吃意大利面。'],
+  ['spoon', '/spuːn/', 'n.', '勺子', 'I need a spoon for my soup.', '我需要一把勺子喝汤。'],
+  ['menu', '/ˈmen.juː/', 'n.', '菜单', 'Can we see the menu, please?', '请给我们看看菜单好吗？'],
+  ['restaurant', '/ˈres.trɒnt/', 'n.', '餐馆', 'We went to a Chinese restaurant.', '我们去了一家中餐馆。'],
+  ['cafe', '/ˈkæf.eɪ/', 'n.', '咖啡馆', "Let's meet at the cafe.", '我们在咖啡馆见吧。'],
+  ['bill', '/bɪl/', 'n.', '账单', 'Can we have the bill, please?', '请给我们结账好吗？'],
+  ['recipe', '/ˈres.ɪ.pi/', 'n.', '食谱', "This is my grandma's recipe.", '这是我奶奶的食谱。'],
+  ['picnic', '/ˈpɪk.nɪk/', 'n.', '野餐', "Let's have a picnic in the park.", '我们去公园野餐吧。'],
+  ['barbecue', '/ˈbɑː.bɪ.kjuː/', 'n.', '烧烤', 'We had a barbecue in the garden.', '我们在花园里烧烤。'],
+  ['vegetarian', '/ˌvedʒ.əˈteə.ri.ən/', 'n.', '素食者', 'My cousin is a vegetarian.', '我表姐是素食者。'],
+  ['hungry', '/ˈhʌŋ.ɡri/', 'adj.', '饿的', "I'm hungry. What's for lunch?", '我饿了，午饭吃什么？'],
+  ['thirsty', '/ˈθɜː.sti/', 'adj.', '渴的', 'I am thirsty after running.', '跑完步我很渴。'],
+  ['delicious', '/dɪˈlɪʃ.əs/', 'adj.', '美味的', 'This cake is delicious!', '这个蛋糕真好吃！'],
+  ['sweet', '/swiːt/', 'adj.', '甜的；可爱的', 'These grapes are very sweet.', '这些葡萄很甜。'],
+  ['fresh', '/freʃ/', 'adj.', '新鲜的', 'We buy fresh fruit at the market.', '我们在市场买新鲜水果。'],
+  ['cook', '/kʊk/', 'v.', '做饭；烹调', 'My dad cooks dinner on Sundays.', '我爸爸星期天做晚饭。'],
+  ['bake', '/beɪk/', 'v.', '烘烤', "Let's bake a cake together.", '我们一起烤个蛋糕吧。'],
+  ['fry', '/fraɪ/', 'v.', '油煎；油炸', 'Fry the eggs for two minutes.', '把鸡蛋煎两分钟。'],
+  ['boil', '/bɔɪl/', 'v.', '煮沸；煮', 'Boil the water first.', '先把水烧开。'],
+  ['eat', '/iːt/', 'v.', '吃', 'We eat dinner at seven.', '我们七点吃晚饭。'],
+  ['taste', '/teɪst/', 'v.', '尝；有……味道', 'This soup tastes good.', '这汤味道很好。'],
+  ['order', '/ˈɔː.dər/', 'v.', '点（菜）；订购', 'Are you ready to order?', '您准备好点菜了吗？'],
+  ['slice', '/slaɪs/', 'n.', '片', 'Can I have a slice of cake?', '我能吃一块蛋糕吗？'],
+];
+
+// ---- src/words/home.js ----
+// 房屋与家居 · 目标 70 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_HOME = [
+  ['house', '/haʊs/', 'n.', '房子', 'They live in a big house.', '他们住在一栋大房子里。'],
+  ['home', '/həʊm/', 'n.', '家', "I go home at four o'clock.", '我四点回家。'],
+  ['flat', '/flæt/', 'n.', '公寓；单元房', 'We live in a flat on the fifth floor.', '我们住在五楼的一套公寓里。'],
+  ['apartment', '/əˈpɑːt.mənt/', 'n.', '公寓', 'Their apartment has two bedrooms.', '他们的公寓有两间卧室。'],
+  ['cottage', '/ˈkɒt.ɪdʒ/', 'n.', '小屋；村舍', 'My grandparents live in a cottage.', '我祖父母住在一间小屋里。'],
+  ['room', '/ruːm/', 'n.', '房间', 'My room is small but nice.', '我的房间小但很好。'],
+  ['bedroom', '/ˈbed.ruːm/', 'n.', '卧室', 'I share a bedroom with my sister.', '我和姐姐共用一间卧室。'],
+  ['bathroom', '/ˈbɑːθ.ruːm/', 'n.', '浴室；卫生间', 'The bathroom is upstairs.', '卫生间在楼上。'],
+  ['kitchen', '/ˈkɪtʃ.ən/', 'n.', '厨房', 'Mum is cooking in the kitchen.', '妈妈在厨房做饭。'],
+  ['living room', '/ˈlɪv.ɪŋ ˌruːm/', 'n.', '客厅', 'We watch TV in the living room.', '我们在客厅看电视。'],
+  ['dining room', '/ˈdaɪ.nɪŋ ˌruːm/', 'n.', '餐厅（家里的）', 'We eat dinner in the dining room.', '我们在餐厅吃晚饭。'],
+  ['hall', '/hɔːl/', 'n.', '门厅；大厅', 'Leave your shoes in the hall.', '把鞋放在门厅。'],
+  ['garden', '/ˈɡɑː.dən/', 'n.', '花园', 'There are many flowers in our garden.', '我们花园里有很多花。'],
+  ['garage', '/ˈɡær.ɑːʒ/', 'n.', '车库', 'Dad keeps his bike in the garage.', '爸爸把自行车放在车库里。'],
+  ['stairs', '/steəz/', 'n.', '楼梯', "Don't run on the stairs.", '不要在楼梯上跑。'],
+  ['upstairs', '/ʌpˈsteəz/', 'adv.', '在楼上；往楼上', 'My bedroom is upstairs.', '我的卧室在楼上。'],
+  ['downstairs', '/ˌdaʊnˈsteəz/', 'adv.', '在楼下；往楼下', 'Breakfast is ready. Come downstairs!', '早饭好了，下楼吧！'],
+  ['floor', '/flɔːr/', 'n.', '地板；楼层', 'The cat is sleeping on the floor.', '猫在地板上睡觉。'],
+  ['wall', '/wɔːl/', 'n.', '墙', 'There is a clock on the wall.', '墙上有一个钟。'],
+  ['door', '/dɔːr/', 'n.', '门', 'Please close the door.', '请关门。'],
+  ['window', '/ˈwɪn.dəʊ/', 'n.', '窗户', 'Can you open the window?', '你能打开窗户吗？'],
+  ['roof', '/ruːf/', 'n.', '屋顶', 'There is a bird on the roof.', '屋顶上有一只鸟。'],
+  ['gate', '/ɡeɪt/', 'n.', '大门；栅栏门', 'Close the garden gate, please.', '请关上花园的门。'],
+  ['key', '/kiː/', 'n.', '钥匙', 'I lost my door key.', '我把门钥匙丢了。'],
+  ['lift', '/lɪft/', 'n.', '电梯', 'Take the lift to the sixth floor.', '乘电梯到六楼。'],
+  ['balcony', '/ˈbæl.kə.ni/', 'n.', '阳台', 'We have plants on our balcony.', '我们的阳台上有植物。'],
+  ['furniture', '/ˈfɜː.nɪ.tʃər/', 'n.', '家具', 'We bought some new furniture.', '我们买了一些新家具。'],
+  ['sofa', '/ˈsəʊ.fə/', 'n.', '沙发', 'The dog is sleeping on the sofa.', '狗在沙发上睡觉。'],
+  ['armchair', '/ˈɑːm.tʃeər/', 'n.', '扶手椅', 'Grandpa reads in his armchair.', '爷爷坐在扶手椅上看书。'],
+  ['chair', '/tʃeər/', 'n.', '椅子', 'Please sit on this chair.', '请坐在这把椅子上。'],
+  ['table', '/ˈteɪ.bəl/', 'n.', '桌子', 'Put the plates on the table.', '把盘子放在桌子上。'],
+  ['bed', '/bed/', 'n.', '床', 'I go to bed at nine.', '我九点上床睡觉。'],
+  ['cupboard', '/ˈkʌb.əd/', 'n.', '橱柜', 'The cups are in the cupboard.', '杯子在橱柜里。'],
+  ['wardrobe', '/ˈwɔː.drəʊb/', 'n.', '衣柜', 'Hang your coat in the wardrobe.', '把外套挂进衣柜。'],
+  ['shelf', '/ʃelf/', 'n.', '架子', 'The books are on the shelf.', '书在架子上。'],
+  ['bookcase', '/ˈbʊk.keɪs/', 'n.', '书柜', 'I have a bookcase in my room.', '我房间里有一个书柜。'],
+  ['mirror', '/ˈmɪr.ər/', 'n.', '镜子', 'She looked in the mirror.', '她照了照镜子。'],
+  ['lamp', '/læmp/', 'n.', '台灯；灯', 'Turn on the lamp, please.', '请把台灯打开。'],
+  ['light', '/laɪt/', 'n.', '灯；光', 'Turn off the light when you leave.', '离开时把灯关掉。'],
+  ['curtain', '/ˈkɜː.tən/', 'n.', '窗帘', 'Close the curtains, please.', '请拉上窗帘。'],
+  ['carpet', '/ˈkɑː.pɪt/', 'n.', '地毯', 'There is a red carpet in the hall.', '门厅里有一块红地毯。'],
+  ['picture', '/ˈpɪk.tʃər/', 'n.', '图画；照片', 'There is a picture of my family on the wall.', '墙上有一张我家的照片。'],
+  ['clock', '/klɒk/', 'n.', '钟', 'The clock in the kitchen is slow.', '厨房里的钟慢了。'],
+  ['alarm clock', '/əˈlɑːm ˌklɒk/', 'n.', '闹钟', 'My alarm clock rings at seven.', '我的闹钟七点响。'],
+  ['sink', '/sɪŋk/', 'n.', '水槽；洗手池', 'Put the dirty plates in the sink.', '把脏盘子放进水槽。'],
+  ['tap', '/tæp/', 'n.', '水龙头', 'Turn off the tap!', '把水龙头关上！'],
+  ['bath', '/bɑːθ/', 'n.', '浴缸；洗澡', 'The baby is having a bath.', '宝宝在洗澡。'],
+  ['shower', '/ʃaʊər/', 'n.', '淋浴', 'I have a shower every morning.', '我每天早上冲个澡。'],
+  ['toilet', '/ˈtɔɪ.lət/', 'n.', '厕所；马桶', 'Where is the toilet, please?', '请问厕所在哪儿？'],
+  ['towel', '/taʊəl/', 'n.', '毛巾', 'Can I have a clean towel?', '能给我一条干净的毛巾吗？'],
+  ['soap', '/səʊp/', 'n.', '肥皂', 'Wash your hands with soap.', '用肥皂洗手。'],
+  ['toothbrush', '/ˈtuːθ.brʌʃ/', 'n.', '牙刷', 'I need a new toothbrush.', '我需要一把新牙刷。'],
+  ['toothpaste', '/ˈtuːθ.peɪst/', 'n.', '牙膏', 'We have run out of toothpaste.', '我们的牙膏用完了。'],
+  ['fridge', '/frɪdʒ/', 'n.', '冰箱', 'Put the milk in the fridge.', '把牛奶放进冰箱。'],
+  ['cooker', '/ˈkʊk.ər/', 'n.', '炉具；灶具', 'The soup is on the cooker.', '汤在灶上。'],
+  ['oven', '/ˈʌv.ən/', 'n.', '烤箱', 'The cake is in the oven.', '蛋糕在烤箱里。'],
+  ['microwave', '/ˈmaɪ.krə.weɪv/', 'n.', '微波炉', 'Heat the milk in the microwave.', '用微波炉热牛奶。'],
+  ['dishwasher', '/ˈdɪʃˌwɒʃ.ər/', 'n.', '洗碗机', 'Put the cups in the dishwasher.', '把杯子放进洗碗机。'],
+  ['washing machine', '/ˈwɒʃ.ɪŋ məˌʃiːn/', 'n.', '洗衣机', 'The washing machine is broken.', '洗衣机坏了。'],
+  ['pillow', '/ˈpɪl.əʊ/', 'n.', '枕头', 'I like a soft pillow.', '我喜欢软枕头。'],
+  ['blanket', '/ˈblæŋ.kɪt/', 'n.', '毯子', "It's cold. Take a blanket.", '天冷，拿条毯子吧。'],
+  ['box', '/bɒks/', 'n.', '盒子；箱子', 'Put your toys in the box.', '把玩具放进箱子里。'],
+  ['bin', '/bɪn/', 'n.', '垃圾桶', 'Put the paper in the bin.', '把纸扔进垃圾桶。'],
+  ['tidy', '/ˈtaɪ.di/', 'v.', '整理；收拾', 'Please tidy your room.', '请收拾你的房间。'],
+  ['clean', '/kliːn/', 'v.', '打扫；干净的', 'We clean the house on Saturdays.', '我们星期六打扫房子。'],
+  ['wash', '/wɒʃ/', 'v.', '洗', 'Wash your hands before dinner.', '饭前洗手。'],
+  ['housework', '/ˈhaʊs.wɜːk/', 'n.', '家务', 'I help with the housework.', '我帮忙做家务。'],
+  ['address', '/əˈdres/', 'n.', '地址', 'What is your address?', '你的地址是什么？'],
+  ['live', '/lɪv/', 'v.', '居住；生活', 'I live in Shanghai.', '我住在上海。'],
+  ['move house', '/ˌmuːv ˈhaʊs/', 'phr.', '搬家', 'We moved house last summer.', '我们去年夏天搬了家。'],
+];
+
+// ---- src/words/clothes.js ----
+// 衣服与配饰 · 目标 40 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_CLOTHES = [
+  ['clothes', '/kləʊðz/', 'n.', '衣服', 'I need some new clothes.', '我需要一些新衣服。'],
+  ['shirt', '/ʃɜːt/', 'n.', '衬衫', 'He is wearing a white shirt.', '他穿着一件白衬衫。'],
+  ['T-shirt', '/ˈtiː.ʃɜːt/', 'n.', 'T 恤衫', 'I wear a T-shirt in summer.', '我夏天穿 T 恤。'],
+  ['trousers', '/ˈtraʊ.zəz/', 'n.', '裤子', 'These trousers are too long.', '这条裤子太长了。'],
+  ['jeans', '/dʒiːnz/', 'n.', '牛仔裤', 'I like wearing jeans.', '我喜欢穿牛仔裤。'],
+  ['shorts', '/ʃɔːts/', 'n.', '短裤', "It's hot, so I'm wearing shorts.", '天热，所以我穿短裤。'],
+  ['skirt', '/skɜːt/', 'n.', '裙子（半身裙）', 'She has a long blue skirt.', '她有一条蓝色长裙。'],
+  ['dress', '/dres/', 'n.', '连衣裙', 'She wore a beautiful dress to the party.', '她穿了一条漂亮的连衣裙去参加聚会。'],
+  ['coat', '/kəʊt/', 'n.', '外套；大衣', "Put on your coat. It's cold.", '穿上外套，天冷。'],
+  ['jacket', '/ˈdʒæk.ɪt/', 'n.', '夹克', 'This jacket has two pockets.', '这件夹克有两个口袋。'],
+  ['jumper', '/ˈdʒʌm.pər/', 'n.', '套头毛衣', 'Grandma made me a jumper.', '奶奶给我织了一件毛衣。'],
+  ['sweater', '/ˈswet.ər/', 'n.', '毛衣', 'I wear a warm sweater in winter.', '我冬天穿暖和的毛衣。'],
+  ['shoe', '/ʃuː/', 'n.', '鞋', 'Take off your shoes, please.', '请脱鞋。'],
+  ['boot', '/buːt/', 'n.', '靴子', 'Wear your boots in the snow.', '下雪天穿上靴子。'],
+  ['trainers', '/ˈtreɪ.nəz/', 'n.', '运动鞋', 'I need new trainers for PE.', '我上体育课需要新运动鞋。'],
+  ['sock', '/sɒk/', 'n.', '袜子', "I can't find my other sock.", '我找不到另一只袜子了。'],
+  ['hat', '/hæt/', 'n.', '帽子', 'Wear a hat in the sun.', '太阳下要戴帽子。'],
+  ['cap', '/kæp/', 'n.', '鸭舌帽；便帽', 'He always wears a baseball cap.', '他总是戴着一顶棒球帽。'],
+  ['scarf', '/skɑːf/', 'n.', '围巾', 'This scarf keeps me warm.', '这条围巾让我很暖和。'],
+  ['glove', '/ɡlʌv/', 'n.', '手套', 'I lost one of my gloves.', '我丢了一只手套。'],
+  ['belt', '/belt/', 'n.', '腰带', 'These trousers need a belt.', '这条裤子需要系腰带。'],
+  ['tie', '/taɪ/', 'n.', '领带', 'Dad wears a tie to work.', '爸爸系领带上班。'],
+  ['pocket', '/ˈpɒk.ɪt/', 'n.', '口袋', 'The key is in my pocket.', '钥匙在我口袋里。'],
+  ['button', '/ˈbʌt.ən/', 'n.', '纽扣；按钮', 'A button came off my shirt.', '我衬衫上掉了一颗扣子。'],
+  ['pyjamas', '/pəˈdʒɑː.məz/', 'n.', '睡衣', 'Put on your pyjamas and go to bed.', '穿上睡衣去睡觉吧。'],
+  ['swimsuit', '/ˈswɪm.suːt/', 'n.', '泳衣', "Don't forget your swimsuit.", '别忘了带泳衣。'],
+  ['sunglasses', '/ˈsʌnˌɡlɑː.sɪz/', 'n.', '太阳镜', 'She is wearing sunglasses.', '她戴着太阳镜。'],
+  ['glasses', '/ˈɡlɑː.sɪz/', 'n.', '眼镜', 'My grandpa wears glasses to read.', '我爷爷戴眼镜看书。'],
+  ['umbrella', '/ʌmˈbrel.ə/', 'n.', '雨伞', 'Take an umbrella. It might rain.', '带把伞，可能会下雨。'],
+  ['bag', '/bæɡ/', 'n.', '包；袋子', 'My bag is full of books.', '我的包里装满了书。'],
+  ['handbag', '/ˈhænd.bæɡ/', 'n.', '手提包', 'Mum keeps her keys in her handbag.', '妈妈把钥匙放在手提包里。'],
+  ['purse', '/pɜːs/', 'n.', '钱包（女式）', 'She took some money from her purse.', '她从钱包里拿了些钱。'],
+  ['watch', '/wɒtʃ/', 'n.', '手表；观看', "My watch says it is three o'clock.", '我的手表显示三点了。'],
+  ['ring', '/rɪŋ/', 'n.', '戒指；铃声', 'She has a gold ring.', '她有一枚金戒指。'],
+  ['necklace', '/ˈnek.ləs/', 'n.', '项链', 'This necklace was a present.', '这条项链是一份礼物。'],
+  ['jewellery', '/ˈdʒuː.əl.ri/', 'n.', '珠宝；首饰', "She doesn't wear much jewellery.", '她不怎么戴首饰。'],
+  ['wear', '/weər/', 'v.', '穿；戴', 'What are you going to wear?', '你打算穿什么？'],
+  ['put on', '/ˌpʊt ˈɒn/', 'phr.', '穿上；戴上', 'Put on your shoes.', '穿上你的鞋。'],
+  ['take off', '/ˌteɪk ˈɒf/', 'phr.', '脱下；（飞机）起飞', 'Take off your wet clothes.', '把湿衣服脱下来。'],
+  ['try on', '/ˌtraɪ ˈɒn/', 'phr.', '试穿', 'Can I try on this jacket?', '我能试穿这件夹克吗？'],
+  ['fashion', '/ˈfæʃ.ən/', 'n.', '时尚；流行', 'She is interested in fashion.', '她对时尚感兴趣。'],
+];
+
+// ---- src/words/body.js ----
+// 身体与健康 · 目标 50 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_BODY = [
+  ['body', '/ˈbɒd.i/', 'n.', '身体', 'Exercise is good for your body.', '锻炼对身体有好处。'],
+  ['head', '/hed/', 'n.', '头', 'He hit his head on the door.', '他的头撞到了门上。'],
+  ['hair', '/heər/', 'n.', '头发', 'She has long black hair.', '她有一头乌黑的长发。'],
+  ['face', '/feɪs/', 'n.', '脸', 'Wash your face, please.', '请洗脸。'],
+  ['eye', '/aɪ/', 'n.', '眼睛', 'My sister has blue eyes.', '我姐姐有一双蓝眼睛。'],
+  ['ear', '/ɪər/', 'n.', '耳朵', 'Rabbits have long ears.', '兔子有长耳朵。'],
+  ['nose', '/nəʊz/', 'n.', '鼻子', 'The clown has a red nose.', '小丑有个红鼻子。'],
+  ['mouth', '/maʊθ/', 'n.', '嘴', 'Open your mouth, please.', '请张开嘴。'],
+  ['tooth', '/tuːθ/', 'n.', '牙齿', 'Brush your teeth twice a day.', '每天刷两次牙。'],
+  ['lip', '/lɪp/', 'n.', '嘴唇', 'My lips are dry in winter.', '冬天我的嘴唇很干。'],
+  ['tongue', '/tʌŋ/', 'n.', '舌头', 'The dog put out its tongue.', '狗伸出了舌头。'],
+  ['neck', '/nek/', 'n.', '脖子', 'Giraffes have very long necks.', '长颈鹿的脖子很长。'],
+  ['throat', '/θrəʊt/', 'n.', '喉咙', 'I have a sore throat.', '我喉咙痛。'],
+  ['shoulder', '/ˈʃəʊl.dər/', 'n.', '肩膀', 'She put her bag on her shoulder.', '她把包挎在肩上。'],
+  ['arm', '/ɑːm/', 'n.', '手臂', 'He broke his arm playing football.', '他踢足球时摔断了胳膊。'],
+  ['hand', '/hænd/', 'n.', '手', 'Put up your hand if you know the answer.', '知道答案的请举手。'],
+  ['finger', '/ˈfɪŋ.ɡər/', 'n.', '手指', 'I cut my finger with a knife.', '我用刀割到了手指。'],
+  ['thumb', '/θʌm/', 'n.', '大拇指', 'The baby is sucking his thumb.', '宝宝在吮大拇指。'],
+  ['leg', '/leɡ/', 'n.', '腿', 'A spider has eight legs.', '蜘蛛有八条腿。'],
+  ['knee', '/niː/', 'n.', '膝盖', 'I fell and hurt my knee.', '我摔倒了，伤了膝盖。'],
+  ['foot', '/fʊt/', 'n.', '脚', 'My feet are cold.', '我的脚很冷。'],
+  ['toe', '/təʊ/', 'n.', '脚趾', 'I hurt my toe on the table.', '我的脚趾撞到了桌子上。'],
+  ['back', '/bæk/', 'n.', '背部；后面', 'My back hurts after sitting all day.', '坐了一整天，我的背很疼。'],
+  ['stomach', '/ˈstʌm.ək/', 'n.', '胃；肚子', 'My stomach feels full.', '我的肚子饱饱的。'],
+  ['heart', '/hɑːt/', 'n.', '心脏；心', 'Your heart beats faster when you run.', '跑步时心跳会加快。'],
+  ['blood', '/blʌd/', 'n.', '血', 'There was blood on his knee.', '他的膝盖上有血。'],
+  ['skin', '/skɪn/', 'n.', '皮肤', 'Use sun cream to protect your skin.', '用防晒霜保护皮肤。'],
+  ['bone', '/bəʊn/', 'n.', '骨头', 'The dog is eating a bone.', '狗在啃骨头。'],
+  ['beard', '/bɪəd/', 'n.', '胡须', 'My uncle has a long beard.', '我叔叔留着长胡子。'],
+  ['health', '/helθ/', 'n.', '健康', 'Smoking is bad for your health.', '吸烟有害健康。'],
+  ['healthy', '/ˈhel.θi/', 'adj.', '健康的', 'Fruit is healthy food.', '水果是健康食品。'],
+  ['ill', '/ɪl/', 'adj.', '生病的', "She is ill and can't come to school.", '她生病了，不能来上学。'],
+  ['sick', '/sɪk/', 'adj.', '生病的；恶心的', 'I feel sick after eating too much.', '吃太多了我觉得恶心。'],
+  ['well', '/wel/', 'adj.', '身体好的', "I don't feel well today.", '我今天身体不舒服。'],
+  ['fit', '/fɪt/', 'adj.', '健康的；强健的', 'I swim to keep fit.', '我游泳来保持健康。'],
+  ['headache', '/ˈhed.eɪk/', 'n.', '头痛', 'I have a bad headache.', '我头疼得厉害。'],
+  ['stomach ache', '/ˈstʌm.ək ˌeɪk/', 'n.', '胃痛；肚子痛', 'He has a stomach ache.', '他肚子疼。'],
+  ['toothache', '/ˈtuːθ.eɪk/', 'n.', '牙痛', 'I have toothache, so I am going to the dentist.', '我牙疼，所以要去看牙医。'],
+  ['earache', '/ˈɪə.reɪk/', 'n.', '耳朵痛', 'The child has earache.', '这个孩子耳朵痛。'],
+  ['cough', '/kɒf/', 'n.', '咳嗽', 'He has a bad cough.', '他咳嗽得很厉害。'],
+  ['sore', '/sɔːr/', 'adj.', '疼痛的', 'My legs are sore after the race.', '赛跑后我的腿很酸痛。'],
+  ['temperature', '/ˈtem.prə.tʃər/', 'n.', '体温；温度', 'You have a high temperature.', '你发烧了。'],
+  ['hurt', '/hɜːt/', 'v.', '受伤；疼痛', 'My foot hurts.', '我的脚疼。'],
+  ['pain', '/peɪn/', 'n.', '疼痛', 'I have a pain in my leg.', '我的腿疼。'],
+  ['medicine', '/ˈmed.ɪ.sən/', 'n.', '药', 'Take this medicine three times a day.', '这药一天吃三次。'],
+  ['pill', '/pɪl/', 'n.', '药片', 'Take one pill after breakfast.', '早饭后吃一片药。'],
+  ['accident', '/ˈæk.sɪ.dənt/', 'n.', '事故；意外', 'He had an accident on his bike.', '他骑车出了事故。'],
+  ['ambulance', '/ˈæm.bjə.ləns/', 'n.', '救护车', 'Call an ambulance!', '快叫救护车！'],
+  ['appointment', '/əˈpɔɪnt.mənt/', 'n.', '预约', "I have a doctor's appointment at ten.", '我十点约了看医生。'],
+  ['rest', '/rest/', 'n.', '休息', 'You need a good rest.', '你需要好好休息。'],
+];
+
+// ---- src/words/sport.js ----
+// 运动 · 目标 50 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_SPORT = [
+  ['sport', '/spɔːt/', 'n.', '体育运动', 'What sports do you like?', '你喜欢什么运动？'],
+  ['football', '/ˈfʊt.bɔːl/', 'n.', '足球', 'We play football after school.', '我们放学后踢足球。'],
+  ['basketball', '/ˈbɑː.skɪt.bɔːl/', 'n.', '篮球', 'He is tall and good at basketball.', '他个子高，擅长打篮球。'],
+  ['tennis', '/ˈten.ɪs/', 'n.', '网球', 'Do you want to play tennis?', '你想打网球吗？'],
+  ['volleyball', '/ˈvɒl.i.bɔːl/', 'n.', '排球', 'We play volleyball on the beach.', '我们在沙滩上打排球。'],
+  ['badminton', '/ˈbæd.mɪn.tən/', 'n.', '羽毛球', 'I play badminton with my dad.', '我和爸爸打羽毛球。'],
+  ['baseball', '/ˈbeɪs.bɔːl/', 'n.', '棒球', 'Baseball is popular in America.', '棒球在美国很流行。'],
+  ['hockey', '/ˈhɒk.i/', 'n.', '曲棍球', 'She is in the school hockey team.', '她是学校曲棍球队的队员。'],
+  ['golf', '/ɡɒlf/', 'n.', '高尔夫球', 'My grandpa plays golf on Sundays.', '我爷爷星期天打高尔夫球。'],
+  ['swimming', '/ˈswɪm.ɪŋ/', 'n.', '游泳运动', 'Swimming is good exercise.', '游泳是很好的锻炼。'],
+  ['cycling', '/ˈsaɪ.klɪŋ/', 'n.', '骑行运动', 'We went cycling in the park.', '我们去公园骑车了。'],
+  ['skiing', '/ˈskiː.ɪŋ/', 'n.', '滑雪运动', 'We go skiing every winter.', '我们每年冬天去滑雪。'],
+  ['skating', '/ˈskeɪ.tɪŋ/', 'n.', '滑冰', 'Skating on ice is fun.', '在冰上滑冰很好玩。'],
+  ['sailing', '/ˈseɪ.lɪŋ/', 'n.', '帆船运动', 'My uncle loves sailing.', '我叔叔很喜欢玩帆船。'],
+  ['surfing', '/ˈsɜː.fɪŋ/', 'n.', '冲浪', 'They went surfing in Australia.', '他们在澳大利亚冲浪。'],
+  ['climbing', '/ˈklaɪ.mɪŋ/', 'n.', '攀登；攀岩', 'Climbing is exciting but dangerous.', '攀岩很刺激但也危险。'],
+  ['horse riding', '/ˈhɔːs ˌraɪ.dɪŋ/', 'n.', '骑马', 'I have horse riding lessons on Saturdays.', '我星期六上骑马课。'],
+  ['gymnastics', '/dʒɪmˈnæs.tɪks/', 'n.', '体操', 'She is very good at gymnastics.', '她体操很好。'],
+  ['table tennis', '/ˈteɪ.bəl ˌten.ɪs/', 'n.', '乒乓球', 'Table tennis is very popular in China.', '乒乓球在中国很受欢迎。'],
+  ['athletics', '/æθˈlet.ɪks/', 'n.', '田径运动', 'He won a prize in athletics.', '他在田径比赛中得了奖。'],
+  ['exercise', '/ˈek.sə.saɪz/', 'n.', '锻炼；练习', 'You should do more exercise.', '你应该多锻炼。'],
+  ['match', '/mætʃ/', 'n.', '比赛', 'Did you watch the football match?', '你看那场足球比赛了吗？'],
+  ['game', '/ɡeɪm/', 'n.', '游戏；比赛', "Let's play a game.", '我们来玩个游戏吧。'],
+  ['team', '/tiːm/', 'n.', '队', 'Which team do you support?', '你支持哪个队？'],
+  ['player', '/ˈpleɪ.ər/', 'n.', '运动员；选手', 'He is the best player in the team.', '他是队里最好的球员。'],
+  ['coach', '/kəʊtʃ/', 'n.', '教练；长途汽车', 'Our coach is very strict.', '我们的教练很严格。'],
+  ['race', '/reɪs/', 'n.', '赛跑；竞赛', 'She won the race.', '她赢了那场赛跑。'],
+  ['competition', '/ˌkɒm.pəˈtɪʃ.ən/', 'n.', '比赛；竞赛', 'I entered a drawing competition.', '我参加了一个绘画比赛。'],
+  ['prize', '/praɪz/', 'n.', '奖品；奖', 'He got first prize.', '他得了一等奖。'],
+  ['goal', '/ɡəʊl/', 'n.', '球门；进球；目标', 'He scored a goal.', '他进了一个球。'],
+  ['score', '/skɔːr/', 'v.', '得分；比分', 'Who scored the first goal?', '谁进了第一个球？'],
+  ['ball', '/bɔːl/', 'n.', '球', 'Throw me the ball!', '把球扔给我！'],
+  ['bat', '/bæt/', 'n.', '球拍；球棒；蝙蝠', 'Hit the ball with the bat.', '用球拍击球。'],
+  ['racket', '/ˈræk.ɪt/', 'n.', '（网球等）球拍', 'I need a new tennis racket.', '我需要一个新的网球拍。'],
+  ['net', '/net/', 'n.', '网', 'The ball hit the net.', '球打在网上了。'],
+  ['stadium', '/ˈsteɪ.di.əm/', 'n.', '体育场', 'The stadium was full of fans.', '体育场里坐满了球迷。'],
+  ['sports centre', '/ˈspɔːts ˌsen.tər/', 'n.', '体育中心', 'I go swimming at the sports centre.', '我在体育中心游泳。'],
+  ['swimming pool', '/ˈswɪm.ɪŋ ˌpuːl/', 'n.', '游泳池', 'The swimming pool is open until eight.', '游泳池开到八点。'],
+  ['gym', '/dʒɪm/', 'n.', '健身房；体育馆', 'My mum goes to the gym twice a week.', '我妈妈每周去两次健身房。'],
+  ['champion', '/ˈtʃæm.pi.ən/', 'n.', '冠军', 'She is the school tennis champion.', '她是学校网球冠军。'],
+  ['winner', '/ˈwɪn.ər/', 'n.', '获胜者', 'The winner gets a gold medal.', '获胜者得到一枚金牌。'],
+  ['medal', '/ˈmed.əl/', 'n.', '奖牌', 'He won a silver medal.', '他赢得了一枚银牌。'],
+  ['fan', '/fæn/', 'n.', '迷；粉丝；风扇', 'I am a big fan of this team.', '我是这个队的铁杆粉丝。'],
+  ['win', '/wɪn/', 'v.', '赢；获胜', 'I hope our team wins.', '我希望我们队赢。'],
+  ['lose', '/luːz/', 'v.', '输；丢失', "Don't be sad if you lose.", '输了也别难过。'],
+  ['kick', '/kɪk/', 'v.', '踢', 'Kick the ball to me.', '把球踢给我。'],
+  ['throw', '/θrəʊ/', 'v.', '扔；投', 'Can you throw the ball higher?', '你能把球扔高一点吗？'],
+  ['catch', '/kætʃ/', 'v.', '接住；抓住', 'I caught the ball with one hand.', '我一只手接住了球。'],
+  ['jump', '/dʒʌmp/', 'v.', '跳', 'How high can you jump?', '你能跳多高？'],
+  ['run', '/rʌn/', 'v.', '跑', 'I run in the park every morning.', '我每天早上在公园跑步。'],
+  ['swim', '/swɪm/', 'v.', '游泳', 'Can you swim?', '你会游泳吗？'],
+  ['ride', '/raɪd/', 'v.', '骑', 'I ride my bike to school.', '我骑自行车上学。'],
+];
+
+// ---- src/words/hobbies.js ----
+// 爱好与休闲 · 目标 60 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_HOBBIES = [
+  ['hobby', '/ˈhɒb.i/', 'n.', '爱好', 'My hobby is reading.', '我的爱好是阅读。'],
+  ['free time', '/ˌfriː ˈtaɪm/', 'n.', '空闲时间', 'What do you do in your free time?', '你空闲时做什么？'],
+  ['painting', '/ˈpeɪn.tɪŋ/', 'n.', '绘画；油画', 'This painting is very old.', '这幅画很古老。'],
+  ['drawing', '/ˈdrɔː.ɪŋ/', 'n.', '素描；画画', 'Your drawing of the cat is great.', '你画的猫真棒。'],
+  ['photo', '/ˈfəʊ.təʊ/', 'n.', '照片', 'Can I take a photo of you?', '我能给你拍张照吗？'],
+  ['camera', '/ˈkæm.rə/', 'n.', '照相机', 'I got a camera for my birthday.', '我生日收到了一台相机。'],
+  ['guitar', '/ɡɪˈtɑːr/', 'n.', '吉他', 'He plays the guitar in a band.', '他在乐队里弹吉他。'],
+  ['piano', '/piˈæn.əʊ/', 'n.', '钢琴', 'She has piano lessons every week.', '她每周上钢琴课。'],
+  ['violin', '/ˌvaɪəˈlɪn/', 'n.', '小提琴', 'I am learning the violin.', '我在学小提琴。'],
+  ['drum', '/drʌm/', 'n.', '鼓', 'My brother plays the drums very loudly.', '我哥哥打鼓很响。'],
+  ['instrument', '/ˈɪn.strə.mənt/', 'n.', '乐器', 'Do you play an instrument?', '你会演奏乐器吗？'],
+  ['band', '/bænd/', 'n.', '乐队', 'My favourite band is coming to our city.', '我最喜欢的乐队要来我们城市了。'],
+  ['concert', '/ˈkɒn.sət/', 'n.', '音乐会', 'We went to a concert last night.', '我们昨晚去听了音乐会。'],
+  ['song', '/sɒŋ/', 'n.', '歌曲', 'This is my favourite song.', '这是我最喜欢的歌。'],
+  ['sing', '/sɪŋ/', 'v.', '唱歌', 'She sings very well.', '她唱歌很好听。'],
+  ['dance', '/dɑːns/', 'v.', '跳舞；舞蹈', 'Do you like to dance?', '你喜欢跳舞吗？'],
+  ['film', '/fɪlm/', 'n.', '电影', "Let's watch a film tonight.", '我们今晚看部电影吧。'],
+  ['cartoon', '/kɑːˈtuːn/', 'n.', '动画片；漫画', 'My little sister loves cartoons.', '我妹妹很喜欢看动画片。'],
+  ['comic', '/ˈkɒm.ɪk/', 'n.', '连环画；漫画书', 'I read comics on the bus.', '我在公交车上看漫画。'],
+  ['magazine', '/ˌmæɡ.əˈziːn/', 'n.', '杂志', 'She buys a fashion magazine every month.', '她每个月买一本时尚杂志。'],
+  ['novel', '/ˈnɒv.əl/', 'n.', '小说', 'I am reading a long novel.', '我在读一本很长的小说。'],
+  ['story', '/ˈstɔː.ri/', 'n.', '故事', 'Dad reads me a story every night.', '爸爸每晚给我读一个故事。'],
+  ['poem', '/ˈpəʊ.ɪm/', 'n.', '诗', 'We learned a poem about spring.', '我们学了一首关于春天的诗。'],
+  ['computer game', '/kəmˈpjuː.tə ˌɡeɪm/', 'n.', '电脑游戏', "Don't play computer games all day.", '别整天玩电脑游戏。'],
+  ['board game', '/ˈbɔːd ˌɡeɪm/', 'n.', '棋盘游戏；桌游', 'We play board games at the weekend.', '我们周末玩桌游。'],
+  ['chess', '/tʃes/', 'n.', '国际象棋', 'Can you play chess?', '你会下国际象棋吗？'],
+  ['toy', '/tɔɪ/', 'n.', '玩具', 'Put your toys away, please.', '请把玩具收好。'],
+  ['doll', '/dɒl/', 'n.', '玩偶；娃娃', 'She has a doll with long hair.', '她有一个长头发的娃娃。'],
+  ['puzzle', '/ˈpʌz.əl/', 'n.', '拼图；谜题', 'This puzzle has 500 pieces.', '这个拼图有 500 块。'],
+  ['cards', '/kɑːdz/', 'n.', '纸牌游戏', 'We played cards after dinner.', '晚饭后我们打了牌。'],
+  ['collect', '/kəˈlekt/', 'v.', '收集', 'I collect stamps from different countries.', '我收集不同国家的邮票。'],
+  ['collection', '/kəˈlek.ʃən/', 'n.', '收藏品；收集', 'He has a big collection of cars.', '他收藏了很多汽车模型。'],
+  ['stamp', '/stæmp/', 'n.', '邮票', 'I need a stamp for this letter.', '这封信需要一张邮票。'],
+  ['camping', '/ˈkæm.pɪŋ/', 'n.', '野营', 'We went camping by the lake.', '我们去湖边露营了。'],
+  ['tent', '/tent/', 'n.', '帐篷', 'We slept in a tent.', '我们睡在帐篷里。'],
+  ['fishing', '/ˈfɪʃ.ɪŋ/', 'n.', '钓鱼', 'Grandpa takes me fishing.', '爷爷带我去钓鱼。'],
+  ['party', '/ˈpɑː.ti/', 'n.', '聚会', 'Are you coming to my party?', '你来参加我的聚会吗？'],
+  ['festival', '/ˈfes.tɪ.vəl/', 'n.', '节日；（音乐等）节', 'The Spring Festival is very important in China.', '春节在中国非常重要。'],
+  ['club', '/klʌb/', 'n.', '俱乐部；社团', 'I joined the chess club.', '我加入了国际象棋社。'],
+  ['show', '/ʃəʊ/', 'n.', '演出；节目', 'We watched a show at the theatre.', '我们在剧院看了一场演出。'],
+  ['programme', '/ˈprəʊ.ɡræm/', 'n.', '（电视）节目', 'What is your favourite TV programme?', '你最喜欢的电视节目是什么？'],
+  ['TV', '/ˌtiːˈviː/', 'n.', '电视', 'I watch TV after dinner.', '我晚饭后看电视。'],
+  ['radio', '/ˈreɪ.di.əʊ/', 'n.', '收音机；广播', 'Mum listens to the radio in the car.', '妈妈在车里听广播。'],
+  ['video', '/ˈvɪd.i.əʊ/', 'n.', '视频；录像', 'We made a video of the party.', '我们把聚会拍成了视频。'],
+  ['quiz', '/kwɪz/', 'n.', '知识竞赛；小测验', 'Our team won the quiz.', '我们队赢了知识竞赛。'],
+  ['draw', '/drɔː/', 'v.', '画（线条画）', 'Can you draw a horse?', '你会画马吗？'],
+  ['paint', '/peɪnt/', 'v.', '（用颜料）画；刷漆', 'I like to paint flowers.', '我喜欢画花。'],
+  ['play', '/pleɪ/', 'v.', '玩；演奏；比赛', 'Can I play with you?', '我能和你一起玩吗？'],
+  ['relax', '/rɪˈlæks/', 'v.', '放松', 'I relax by listening to music.', '我听音乐来放松。'],
+  ['fun', '/fʌn/', 'n.', '乐趣；有趣的', 'The party was great fun.', '这次聚会非常有趣。'],
+  ['activity', '/ækˈtɪv.ə.ti/', 'n.', '活动', 'There are lots of activities at the summer camp.', '夏令营有很多活动。'],
+  ['kite', '/kaɪt/', 'n.', '风筝', "Let's fly a kite in the park.", '我们去公园放风筝吧。'],
+  ['balloon', '/bəˈluːn/', 'n.', '气球', 'We had lots of balloons at the party.', '聚会上有很多气球。'],
+  ['invitation', '/ˌɪn.vɪˈteɪ.ʃən/', 'n.', '邀请；请柬', 'Thank you for the invitation.', '谢谢你的邀请。'],
+  ['celebrate', '/ˈsel.ə.breɪt/', 'v.', '庆祝', 'How do you celebrate your birthday?', '你怎么庆祝生日？'],
+  ['present', '/ˈprez.ənt/', 'n.', '礼物；现在的', 'I bought a present for my mum.', '我给妈妈买了一份礼物。'],
+  ['theme park', '/ˈθiːm ˌpɑːk/', 'n.', '主题公园', 'We went on lots of rides at the theme park.', '我们在主题公园玩了很多项目。'],
+  ['circus', '/ˈsɜː.kəs/', 'n.', '马戏团', 'The clowns at the circus were funny.', '马戏团的小丑很搞笑。'],
+  ['magic', '/ˈmædʒ.ɪk/', 'n.', '魔术；魔法', 'He can do magic tricks.', '他会变魔术。'],
+  ['joke', '/dʒəʊk/', 'n.', '笑话', 'Tell me a joke!', '给我讲个笑话吧！'],
+];
+
+// ---- src/words/travel.js ----
+// 旅行与交通 · 目标 70 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_TRAVEL = [
+  ['travel', '/ˈtræv.əl/', 'v.', '旅行', 'I want to travel around the world.', '我想环游世界。'],
+  ['trip', '/trɪp/', 'n.', '旅行；出行', 'We went on a school trip to the museum.', '我们学校组织去博物馆参观。'],
+  ['journey', '/ˈdʒɜː.ni/', 'n.', '旅程', 'The journey takes two hours.', '这段旅程要两个小时。'],
+  ['holiday', '/ˈhɒl.ə.deɪ/', 'n.', '假期；度假', 'Where did you go on holiday?', '你去哪里度假了？'],
+  ['tour', '/tʊər/', 'n.', '旅游；参观', 'We took a bus tour of the city.', '我们坐巴士游览了城市。'],
+  ['tourist', '/ˈtʊə.rɪst/', 'n.', '游客', 'Many tourists visit Beijing.', '很多游客来北京参观。'],
+  ['visit', '/ˈvɪz.ɪt/', 'v.', '参观；拜访', 'We visited the zoo yesterday.', '我们昨天去了动物园。'],
+  ['car', '/kɑːr/', 'n.', '小汽车', 'My dad drives a red car.', '我爸爸开一辆红色的车。'],
+  ['bus', '/bʌs/', 'n.', '公共汽车', 'I go to school by bus.', '我坐公交车上学。'],
+  ['train', '/treɪn/', 'n.', '火车', 'The train leaves at nine.', '火车九点出发。'],
+  ['plane', '/pleɪn/', 'n.', '飞机', 'We went to London by plane.', '我们坐飞机去了伦敦。'],
+  ['bike', '/baɪk/', 'n.', '自行车（口语）', 'I ride my bike in the park.', '我在公园骑车。'],
+  ['bicycle', '/ˈbaɪ.sɪ.kəl/', 'n.', '自行车', 'She bought a new bicycle.', '她买了一辆新自行车。'],
+  ['motorbike', '/ˈməʊ.tə.baɪk/', 'n.', '摩托车', 'My uncle rides a motorbike.', '我叔叔骑摩托车。'],
+  ['taxi', '/ˈtæk.si/', 'n.', '出租车', "Let's take a taxi to the station.", '我们打车去车站吧。'],
+  ['boat', '/bəʊt/', 'n.', '小船', 'We went on a boat on the river.', '我们在河上坐了船。'],
+  ['ship', '/ʃɪp/', 'n.', '轮船', 'The ship sailed across the sea.', '轮船驶过了大海。'],
+  ['ferry', '/ˈfer.i/', 'n.', '渡轮', 'We took the ferry to the island.', '我们坐渡轮去了岛上。'],
+  ['underground', '/ˈʌn.də.ɡraʊnd/', 'n.', '地铁', 'The underground is the fastest way to get there.', '坐地铁去那里最快。'],
+  ['lorry', '/ˈlɒr.i/', 'n.', '卡车；货车', 'A big lorry stopped outside our house.', '一辆大卡车停在我们家门外。'],
+  ['helicopter', '/ˈhel.ɪˌkɒp.tər/', 'n.', '直升机', 'A helicopter flew over the town.', '一架直升机飞过小镇。'],
+  ['airport', '/ˈeə.pɔːt/', 'n.', '机场', 'We arrived at the airport early.', '我们很早就到了机场。'],
+  ['station', '/ˈsteɪ.ʃən/', 'n.', '车站', 'The station is near my school.', '车站离我学校很近。'],
+  ['bus stop', '/ˈbʌs ˌstɒp/', 'n.', '公交车站', 'Wait for me at the bus stop.', '在公交车站等我。'],
+  ['platform', '/ˈplæt.fɔːm/', 'n.', '站台', 'The train to Oxford leaves from platform 3.', '去牛津的火车从 3 号站台出发。'],
+  ['flight', '/flaɪt/', 'n.', '航班；飞行', "Our flight is at ten o'clock.", '我们的航班是十点。'],
+  ['ticket', '/ˈtɪk.ɪt/', 'n.', '票', 'How much is a ticket to the zoo?', '去动物园的票多少钱？'],
+  ['passport', '/ˈpɑːs.pɔːt/', 'n.', '护照', "Don't forget your passport.", '别忘了带护照。'],
+  ['luggage', '/ˈlʌɡ.ɪdʒ/', 'n.', '行李', 'We have too much luggage.', '我们的行李太多了。'],
+  ['suitcase', '/ˈsuːt.keɪs/', 'n.', '手提箱；行李箱', 'My suitcase is very heavy.', '我的行李箱很重。'],
+  ['backpack', '/ˈbæk.pæk/', 'n.', '背包', 'I carry my water in my backpack.', '我把水放在背包里背着。'],
+  ['map', '/mæp/', 'n.', '地图', 'Can you find our town on the map?', '你能在地图上找到我们的小镇吗？'],
+  ['guidebook', '/ˈɡaɪd.bʊk/', 'n.', '旅游指南', 'The guidebook says the museum is free.', '旅游指南上说博物馆免费。'],
+  ['hotel', '/həʊˈtel/', 'n.', '旅馆；酒店', 'We stayed in a hotel near the beach.', '我们住在海滩附近的酒店。'],
+  ['reception', '/rɪˈsep.ʃən/', 'n.', '（酒店）前台', 'Please leave your key at reception.', '请把钥匙留在前台。'],
+  ['campsite', '/ˈkæmp.saɪt/', 'n.', '露营地', 'The campsite is next to a river.', '露营地紧挨着一条河。'],
+  ['seat', '/siːt/', 'n.', '座位', 'Is this seat free?', '这个座位有人吗？'],
+  ['passenger', '/ˈpæs.ən.dʒər/', 'n.', '乘客', 'The bus has 40 passengers.', '这辆公交车上有 40 名乘客。'],
+  ['traffic', '/ˈtræf.ɪk/', 'n.', '交通；车辆', 'There is a lot of traffic in the morning.', '早上路上车很多。'],
+  ['traffic lights', '/ˈtræf.ɪk ˌlaɪts/', 'n.', '红绿灯', 'Turn left at the traffic lights.', '在红绿灯处左转。'],
+  ['traffic jam', '/ˈtræf.ɪk ˌdʒæm/', 'n.', '交通堵塞', 'We were late because of a traffic jam.', '因为堵车我们迟到了。'],
+  ['petrol', '/ˈpet.rəl/', 'n.', '汽油', 'The car needs petrol.', '车需要加油了。'],
+  ['motorway', '/ˈməʊ.tə.weɪ/', 'n.', '高速公路', 'Cars go very fast on the motorway.', '汽车在高速公路上开得很快。'],
+  ['wheel', '/wiːl/', 'n.', '轮子', 'A bicycle has two wheels.', '自行车有两个轮子。'],
+  ['engine', '/ˈen.dʒɪn/', 'n.', '发动机', 'The engine is making a strange noise.', '发动机发出奇怪的声音。'],
+  ['tyre', '/taɪər/', 'n.', '轮胎', 'My bike has a flat tyre.', '我的自行车轮胎瘪了。'],
+  ['drive', '/draɪv/', 'v.', '驾驶；开车', 'My mum drives me to school.', '妈妈开车送我上学。'],
+  ['fly', '/flaɪ/', 'v.', '飞；乘飞机', 'Birds can fly.', '鸟会飞。'],
+  ['get on', '/ˌɡet ˈɒn/', 'phr.', '上（车、船等）', 'Get on the bus quickly.', '快上车。'],
+  ['get off', '/ˌɡet ˈɒf/', 'phr.', '下（车、船等）', 'We get off at the next stop.', '我们下一站下车。'],
+  ['arrive', '/əˈraɪv/', 'v.', '到达', 'What time does the train arrive?', '火车几点到？'],
+  ['leave', '/liːv/', 'v.', '离开；出发', 'We leave home at seven.', '我们七点出门。'],
+  ['return', '/rɪˈtɜːn/', 'v.', '返回；归还', 'We return from holiday on Monday.', '我们星期一度假回来。'],
+  ['single', '/ˈsɪŋ.ɡəl/', 'adj.', '单程的；单一的', 'A single ticket to York, please.', '请给我一张去约克的单程票。'],
+  ['delay', '/dɪˈleɪ/', 'n.', '延误；耽搁', 'There is a delay of thirty minutes.', '延误了三十分钟。'],
+  ['abroad', '/əˈbrɔːd/', 'adv.', '在国外；到国外', 'She wants to study abroad.', '她想出国留学。'],
+  ['foreign', '/ˈfɒr.ən/', 'adj.', '外国的', 'Can you speak a foreign language?', '你会说外语吗？'],
+  ['souvenir', '/ˌsuː.vəˈnɪər/', 'n.', '纪念品', 'I bought a souvenir for my friend.', '我给朋友买了个纪念品。'],
+  ['sightseeing', '/ˈsaɪtˌsiː.ɪŋ/', 'n.', '观光；游览', 'We went sightseeing in Paris.', '我们在巴黎观光。'],
+  ['postcard', '/ˈpəʊst.kɑːd/', 'n.', '明信片', 'I sent a postcard to my grandma.', '我给奶奶寄了一张明信片。'],
+  ['direction', '/daɪˈrek.ʃən/', 'n.', '方向', 'Which direction is the station?', '车站在哪个方向？'],
+  ['left', '/left/', 'n.', '左边；向左', 'The bank is on the left.', '银行在左边。'],
+  ['right', '/raɪt/', 'n.', '右边；正确的', 'Turn right at the corner.', '在拐角处右转。'],
+  ['straight on', '/ˌstreɪt ˈɒn/', 'phr.', '一直向前', 'Go straight on and you will see the park.', '一直往前走，你就会看到公园。'],
+  ['turn', '/tɜːn/', 'v.', '转弯；转动', 'Turn left at the bank.', '在银行那里左转。'],
+  ['cross', '/krɒs/', 'v.', '穿过；横过', 'Be careful when you cross the road.', '过马路时要小心。'],
+  ['north', '/nɔːθ/', 'n.', '北方', 'Scotland is in the north of Britain.', '苏格兰在英国北部。'],
+  ['south', '/saʊθ/', 'n.', '南方', 'Birds fly south in winter.', '鸟冬天往南飞。'],
+  ['east', '/iːst/', 'n.', '东方', 'The sun rises in the east.', '太阳从东方升起。'],
+  ['west', '/west/', 'n.', '西方', 'The sun sets in the west.', '太阳从西方落下。'],
+];
+
+// ---- src/words/places.js ----
+// 地点与建筑 · 目标 70 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_PLACES = [
+  ['place', '/pleɪs/', 'n.', '地方', 'This is a nice place for a picnic.', '这是个野餐的好地方。'],
+  ['city', '/ˈsɪt.i/', 'n.', '城市', 'London is a very big city.', '伦敦是个很大的城市。'],
+  ['town', '/taʊn/', 'n.', '城镇', 'I live in a small town.', '我住在一个小镇上。'],
+  ['village', '/ˈvɪl.ɪdʒ/', 'n.', '村庄', 'My grandparents live in a village.', '我祖父母住在一个村子里。'],
+  ['country', '/ˈkʌn.tri/', 'n.', '国家；乡村', 'China is a big country.', '中国是一个大国。'],
+  ['capital', '/ˈkæp.ɪ.təl/', 'n.', '首都', 'Beijing is the capital of China.', '北京是中国的首都。'],
+  ['world', '/wɜːld/', 'n.', '世界', 'It is the tallest building in the world.', '它是世界上最高的建筑。'],
+  ['street', '/striːt/', 'n.', '街道', 'There are many shops on this street.', '这条街上有很多商店。'],
+  ['road', '/rəʊd/', 'n.', '路；公路', 'Look both ways before you cross the road.', '过马路前看看两边。'],
+  ['square', '/skweər/', 'n.', '广场；正方形', 'There is a big tree in the square.', '广场上有一棵大树。'],
+  ['park', '/pɑːk/', 'n.', '公园', 'We play in the park on Sundays.', '我们星期天在公园玩。'],
+  ['bridge', '/brɪdʒ/', 'n.', '桥', 'We walked across the bridge.', '我们走过了那座桥。'],
+  ['tunnel', '/ˈtʌn.əl/', 'n.', '隧道', 'The train went through a long tunnel.', '火车穿过了一条长隧道。'],
+  ['building', '/ˈbɪl.dɪŋ/', 'n.', '建筑物；大楼', 'Our school is in a new building.', '我们学校在一栋新楼里。'],
+  ['skyscraper', '/ˈskaɪˌskreɪ.pər/', 'n.', '摩天大楼', 'New York has lots of skyscrapers.', '纽约有很多摩天大楼。'],
+  ['block of flats', '/ˌblɒk əv ˈflæts/', 'n.', '公寓楼', 'We live in a block of flats.', '我们住在一栋公寓楼里。'],
+  ['tower', '/taʊər/', 'n.', '塔', 'You can see the whole city from the tower.', '从塔上可以看到整个城市。'],
+  ['castle', '/ˈkɑː.səl/', 'n.', '城堡', 'The king lived in a castle.', '国王住在城堡里。'],
+  ['palace', '/ˈpæl.ɪs/', 'n.', '宫殿', 'We visited the Summer Palace in Beijing.', '我们参观了北京的颐和园。'],
+  ['church', '/tʃɜːtʃ/', 'n.', '教堂', 'There is an old church in the village.', '村里有一座古老的教堂。'],
+  ['cathedral', '/kəˈθiː.drəl/', 'n.', '大教堂', 'The cathedral is very beautiful.', '这座大教堂非常漂亮。'],
+  ['temple', '/ˈtem.pəl/', 'n.', '寺庙', 'We visited an old temple on the hill.', '我们参观了山上的一座古寺。'],
+  ['museum', '/mjuːˈziː.əm/', 'n.', '博物馆', 'The museum is closed on Mondays.', '博物馆星期一闭馆。'],
+  ['gallery', '/ˈɡæl.ər.i/', 'n.', '美术馆；画廊', 'We saw some famous paintings at the gallery.', '我们在美术馆看了一些名画。'],
+  ['library', '/ˈlaɪ.brər.i/', 'n.', '图书馆', 'I borrow books from the library.', '我从图书馆借书。'],
+  ['bookshop', '/ˈbʊk.ʃɒp/', 'n.', '书店', 'I bought this dictionary at the bookshop.', '我在书店买了这本词典。'],
+  ['theatre', '/ˈθɪə.tər/', 'n.', '剧院', 'We saw a play at the theatre.', '我们在剧院看了一出戏。'],
+  ['cinema', '/ˈsɪn.ə.mə/', 'n.', '电影院', "Let's go to the cinema on Saturday.", '我们星期六去看电影吧。'],
+  ['concert hall', '/ˈkɒn.sət ˌhɔːl/', 'n.', '音乐厅', 'The concert hall was full.', '音乐厅坐满了人。'],
+  ['hospital', '/ˈhɒs.pɪ.təl/', 'n.', '医院', 'She works in a hospital.', '她在医院工作。'],
+  ['clinic', '/ˈklɪn.ɪk/', 'n.', '诊所', 'Take your dog to the animal clinic.', '把你的狗带到宠物诊所去。'],
+  ['chemist', '/ˈkem.ɪst/', 'n.', '药店；药剂师', 'You can buy medicine at the chemist.', '你可以在药店买药。'],
+  ['post office', '/ˈpəʊst ˌɒf.ɪs/', 'n.', '邮局', 'I need to go to the post office.', '我需要去一趟邮局。'],
+  ['police station', '/pəˈliːs ˌsteɪ.ʃən/', 'n.', '警察局', 'He took the lost wallet to the police station.', '他把捡到的钱包送到了警察局。'],
+  ['fire station', '/ˈfaɪə ˌsteɪ.ʃən/', 'n.', '消防站', 'There is a fire station near our school.', '我们学校附近有个消防站。'],
+  ['bank', '/bæŋk/', 'n.', '银行；河岸', 'My dad works at a bank.', '我爸爸在银行工作。'],
+  ['market', '/ˈmɑː.kɪt/', 'n.', '市场', 'We buy vegetables at the market.', '我们在市场买蔬菜。'],
+  ['zoo', '/zuː/', 'n.', '动物园', 'We saw pandas at the zoo.', '我们在动物园看到了熊猫。'],
+  ['farm', '/fɑːm/', 'n.', '农场', 'There are cows and sheep on the farm.', '农场里有牛和羊。'],
+  ['town hall', '/ˌtaʊn ˈhɔːl/', 'n.', '市政厅', 'The town hall is in the main square.', '市政厅在中心广场。'],
+  ['city centre', '/ˌsɪt.i ˈsen.tər/', 'n.', '市中心', 'We went shopping in the city centre.', '我们去市中心购物了。'],
+  ['leisure centre', '/ˈleʒ.ə ˌsen.tər/', 'n.', '休闲中心', 'The leisure centre has a big pool.', '休闲中心有个大泳池。'],
+  ['ice rink', '/ˈaɪs ˌrɪŋk/', 'n.', '溜冰场', 'We went skating at the ice rink.', '我们去溜冰场滑冰了。'],
+  ['youth club', '/ˈjuːθ ˌklʌb/', 'n.', '青少年俱乐部', 'I go to the youth club on Fridays.', '我星期五去青少年俱乐部。'],
+  ['hostel', '/ˈhɒs.təl/', 'n.', '青年旅舍', 'We stayed in a cheap hostel.', '我们住在一家便宜的青年旅舍。'],
+  ['petrol station', '/ˈpet.rəl ˌsteɪ.ʃən/', 'n.', '加油站', 'Stop at the next petrol station.', '在下一个加油站停一下。'],
+  ['car park', '/ˈkɑː ˌpɑːk/', 'n.', '停车场', 'The car park is behind the supermarket.', '停车场在超市后面。'],
+  ['bus station', '/ˈbʌs ˌsteɪ.ʃən/', 'n.', '公交总站；汽车站', 'The bus station is in the town centre.', '汽车站在镇中心。'],
+  ['port', '/pɔːt/', 'n.', '港口', 'The ship arrived at the port.', '船到港了。'],
+  ['harbour', '/ˈhɑː.bər/', 'n.', '港湾', 'There are many boats in the harbour.', '港湾里有很多船。'],
+  ['corner', '/ˈkɔː.nər/', 'n.', '角落；拐角', 'The shop is on the corner.', '商店在拐角处。'],
+  ['centre', '/ˈsen.tər/', 'n.', '中心', 'There is a statue in the centre of the square.', '广场中央有一座雕像。'],
+  ['area', '/ˈeə.ri.ə/', 'n.', '地区；区域', 'This is a quiet area.', '这是一个安静的地区。'],
+  ['pavement', '/ˈpeɪv.mənt/', 'n.', '人行道', 'Walk on the pavement, not on the road.', '走人行道，不要走马路。'],
+  ['roundabout', '/ˈraʊnd.ə.baʊt/', 'n.', '环形交叉路口', 'Go left at the roundabout.', '在环岛处向左走。'],
+  ['path', '/pɑːθ/', 'n.', '小路', 'Follow the path through the forest.', '沿着小路穿过森林。'],
+  ['entrance', '/ˈen.trəns/', 'n.', '入口', 'Meet me at the main entrance.', '在正门口等我。'],
+  ['exit', '/ˈek.sɪt/', 'n.', '出口', 'Where is the exit?', '出口在哪里？'],
+  ['sign', '/saɪn/', 'n.', '标志；招牌', 'The sign says no swimming.', '标志上写着禁止游泳。'],
+  ['statue', '/ˈstætʃ.uː/', 'n.', '雕像', 'There is a statue of a lion in the park.', '公园里有一座狮子雕像。'],
+  ['fountain', '/ˈfaʊn.tɪn/', 'n.', '喷泉', 'Children are playing near the fountain.', '孩子们在喷泉旁玩。'],
+];
+
+// ---- src/words/weather.js ----
+// 天气 · 目标 30 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_WEATHER = [
+  ['weather', '/ˈweð.ər/', 'n.', '天气', 'What is the weather like today?', '今天天气怎么样？'],
+  ['sun', '/sʌn/', 'n.', '太阳；阳光', 'The sun is shining.', '阳光灿烂。'],
+  ['sunny', '/ˈsʌn.i/', 'adj.', '晴朗的', 'It is sunny and warm today.', '今天晴朗暖和。'],
+  ['rain', '/reɪn/', 'n.', '雨；下雨', "Don't go out in the rain.", '别冒雨出去。'],
+  ['rainy', '/ˈreɪ.ni/', 'adj.', '下雨的', 'It was a rainy day.', '那天是个雨天。'],
+  ['cloud', '/klaʊd/', 'n.', '云', 'There are no clouds in the sky.', '天上没有一朵云。'],
+  ['cloudy', '/ˈklaʊ.di/', 'adj.', '多云的', 'It is cloudy but not cold.', '多云但不冷。'],
+  ['wind', '/wɪnd/', 'n.', '风', 'The wind is very strong today.', '今天风很大。'],
+  ['windy', '/ˈwɪn.di/', 'adj.', '有风的', "It's windy. Let's fly a kite.", '今天有风，我们去放风筝吧。'],
+  ['snow', '/snəʊ/', 'n.', '雪；下雪', 'The children are playing in the snow.', '孩子们在雪地里玩。'],
+  ['fog', '/fɒɡ/', 'n.', '雾', 'The fog was very thick this morning.', '今天早上雾很浓。'],
+  ['foggy', '/ˈfɒɡ.i/', 'adj.', '有雾的', "It's foggy, so drive slowly.", '有雾，所以开慢点。'],
+  ['storm', '/stɔːm/', 'n.', '暴风雨', 'There was a big storm last night.', '昨晚有一场大暴风雨。'],
+  ['thunder', '/ˈθʌn.dər/', 'n.', '雷；雷声', 'I am afraid of thunder.', '我害怕打雷。'],
+  ['lightning', '/ˈlaɪt.nɪŋ/', 'n.', '闪电', 'We saw lightning in the sky.', '我们看到天上有闪电。'],
+  ['rainbow', '/ˈreɪn.bəʊ/', 'n.', '彩虹', 'Look! There is a rainbow!', '看！有彩虹！'],
+  ['ice', '/aɪs/', 'n.', '冰', 'The lake is covered with ice.', '湖面结了冰。'],
+  ['icy', '/ˈaɪ.si/', 'adj.', '结冰的；冰冷的', 'Be careful. The road is icy.', '小心，路上结冰了。'],
+  ['hot', '/hɒt/', 'adj.', '热的；辣的', 'It is very hot in summer.', '夏天很热。'],
+  ['warm', '/wɔːm/', 'adj.', '温暖的', 'It is warm and sunny today.', '今天温暖晴朗。'],
+  ['cool', '/kuːl/', 'adj.', '凉爽的；酷的', 'It is cool in the evening.', '晚上很凉爽。'],
+  ['cold', '/kəʊld/', 'adj.', '冷的；感冒', 'It is cold outside. Wear a coat.', '外面冷，穿上外套。'],
+  ['wet', '/wet/', 'adj.', '湿的', 'My shoes are wet from the rain.', '我的鞋被雨淋湿了。'],
+  ['dry', '/draɪ/', 'adj.', '干的；干燥的', 'The weather is dry this week.', '这周天气很干燥。'],
+  ['degree', '/dɪˈɡriː/', 'n.', '度（温度）', 'It is 30 degrees today.', '今天 30 度。'],
+  ['forecast', '/ˈfɔː.kɑːst/', 'n.', '预报', 'The weather forecast says it will rain.', '天气预报说会下雨。'],
+  ['season', '/ˈsiː.zən/', 'n.', '季节', 'Which season do you like best?', '你最喜欢哪个季节？'],
+  ['spring', '/sprɪŋ/', 'n.', '春天', 'Flowers grow in spring.', '春天花儿生长。'],
+  ['summer', '/ˈsʌm.ər/', 'n.', '夏天', 'We go to the beach in summer.', '我们夏天去海边。'],
+  ['autumn', '/ˈɔː.təm/', 'n.', '秋天', 'Leaves fall from the trees in autumn.', '秋天树叶从树上落下。'],
+  ['winter', '/ˈwɪn.tər/', 'n.', '冬天', 'It often snows in winter.', '冬天常下雪。'],
+  ['sky', '/skaɪ/', 'n.', '天空', 'The sky is blue today.', '今天天空很蓝。'],
+];
+
+// ---- src/words/animals.js ----
+// 动物 · 目标 50 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_ANIMALS = [
+  ['animal', '/ˈæn.ɪ.məl/', 'n.', '动物', 'What is your favourite animal?', '你最喜欢什么动物？'],
+  ['pet', '/pet/', 'n.', '宠物', 'Do you have a pet?', '你养宠物吗？'],
+  ['dog', '/dɒɡ/', 'n.', '狗', 'Our dog likes to play in the garden.', '我们的狗喜欢在花园里玩。'],
+  ['cat', '/kæt/', 'n.', '猫', 'The cat is sleeping on my bed.', '猫在我床上睡觉。'],
+  ['puppy', '/ˈpʌp.i/', 'n.', '小狗', 'We got a new puppy.', '我们养了一只新的小狗。'],
+  ['kitten', '/ˈkɪt.ən/', 'n.', '小猫', 'The kitten is playing with a ball.', '小猫在玩球。'],
+  ['rabbit', '/ˈræb.ɪt/', 'n.', '兔子', 'My rabbit eats carrots.', '我的兔子吃胡萝卜。'],
+  ['mouse', '/maʊs/', 'n.', '老鼠；鼠标', 'The cat is chasing a mouse.', '猫在追老鼠。'],
+  ['hamster', '/ˈhæm.stər/', 'n.', '仓鼠', 'My hamster sleeps all day.', '我的仓鼠整天睡觉。'],
+  ['horse', '/hɔːs/', 'n.', '马', 'She can ride a horse.', '她会骑马。'],
+  ['donkey', '/ˈdɒŋ.ki/', 'n.', '驴', 'The donkey is carrying a heavy bag.', '驴驮着一个重袋子。'],
+  ['cow', '/kaʊ/', 'n.', '奶牛；母牛', 'Cows give us milk.', '奶牛给我们提供牛奶。'],
+  ['pig', '/pɪɡ/', 'n.', '猪', 'The pigs are in the mud.', '猪在泥里。'],
+  ['sheep', '/ʃiːp/', 'n.', '羊；绵羊', 'There are many sheep on the hill.', '山上有很多羊。'],
+  ['goat', '/ɡəʊt/', 'n.', '山羊', 'The goat is eating grass.', '山羊在吃草。'],
+  ['duck', '/dʌk/', 'n.', '鸭子', 'We fed the ducks at the lake.', '我们在湖边喂鸭子。'],
+  ['hen', '/hen/', 'n.', '母鸡', 'The hen laid an egg.', '母鸡下了一个蛋。'],
+  ['bird', '/bɜːd/', 'n.', '鸟', 'A bird is singing in the tree.', '一只鸟在树上唱歌。'],
+  ['parrot', '/ˈpær.ət/', 'n.', '鹦鹉', 'Our parrot can say hello.', '我们的鹦鹉会说你好。'],
+  ['owl', '/aʊl/', 'n.', '猫头鹰', 'Owls fly at night.', '猫头鹰在夜里飞。'],
+  ['eagle', '/ˈiː.ɡəl/', 'n.', '鹰', 'The eagle flew high in the sky.', '鹰在高空飞翔。'],
+  ['penguin', '/ˈpeŋ.ɡwɪn/', 'n.', '企鹅', "Penguins can't fly, but they can swim.", '企鹅不会飞，但会游泳。'],
+  ['fish', '/fɪʃ/', 'n.', '鱼；鱼肉', 'There are lots of fish in the river.', '河里有很多鱼。'],
+  ['dolphin', '/ˈdɒl.fɪn/', 'n.', '海豚', 'Dolphins are very clever.', '海豚非常聪明。'],
+  ['whale', '/weɪl/', 'n.', '鲸', 'The whale is the biggest animal in the sea.', '鲸是海里最大的动物。'],
+  ['shark', '/ʃɑːk/', 'n.', '鲨鱼', 'Sharks have sharp teeth.', '鲨鱼有锋利的牙齿。'],
+  ['elephant', '/ˈel.ɪ.fənt/', 'n.', '大象', 'Elephants have long noses.', '大象有长鼻子。'],
+  ['lion', '/ˈlaɪ.ən/', 'n.', '狮子', 'The lion is the king of animals.', '狮子是百兽之王。'],
+  ['tiger', '/ˈtaɪ.ɡər/', 'n.', '老虎', 'Tigers are orange and black.', '老虎是橙黑相间的。'],
+  ['bear', '/beər/', 'n.', '熊', 'Bears sleep in winter.', '熊在冬天睡觉。'],
+  ['panda', '/ˈpæn.də/', 'n.', '熊猫', 'Pandas eat bamboo.', '熊猫吃竹子。'],
+  ['monkey', '/ˈmʌŋ.ki/', 'n.', '猴子', 'The monkey is climbing a tree.', '猴子在爬树。'],
+  ['giraffe', '/dʒɪˈrɑːf/', 'n.', '长颈鹿', 'The giraffe is eating leaves from the tree.', '长颈鹿在吃树上的叶子。'],
+  ['zebra', '/ˈzeb.rə/', 'n.', '斑马', 'Zebras are black and white.', '斑马是黑白相间的。'],
+  ['kangaroo', '/ˌkæŋ.ɡərˈuː/', 'n.', '袋鼠', 'Kangaroos live in Australia.', '袋鼠生活在澳大利亚。'],
+  ['camel', '/ˈkæm.əl/', 'n.', '骆驼', 'Camels can live in the desert.', '骆驼能在沙漠里生活。'],
+  ['fox', '/fɒks/', 'n.', '狐狸', 'A fox came into our garden.', '一只狐狸跑进了我们的花园。'],
+  ['crocodile', '/ˈkrɒk.ə.daɪl/', 'n.', '鳄鱼', 'The crocodile is in the river.', '鳄鱼在河里。'],
+  ['snake', '/sneɪk/', 'n.', '蛇', 'Some snakes are dangerous.', '有些蛇很危险。'],
+  ['frog', '/frɒɡ/', 'n.', '青蛙', 'The frog jumped into the water.', '青蛙跳进了水里。'],
+  ['dinosaur', '/ˈdaɪ.nə.sɔːr/', 'n.', '恐龙', 'Dinosaurs lived millions of years ago.', '恐龙生活在几百万年前。'],
+  ['insect', '/ˈɪn.sekt/', 'n.', '昆虫', 'An ant is a small insect.', '蚂蚁是一种小昆虫。'],
+  ['bee', '/biː/', 'n.', '蜜蜂', 'A bee is flying around the flowers.', '一只蜜蜂在花丛中飞。'],
+  ['butterfly', '/ˈbʌt.ə.flaɪ/', 'n.', '蝴蝶', 'The butterfly has beautiful wings.', '这只蝴蝶有漂亮的翅膀。'],
+  ['spider', '/ˈspaɪ.dər/', 'n.', '蜘蛛', "I'm afraid of spiders.", '我怕蜘蛛。'],
+  ['ant', '/ænt/', 'n.', '蚂蚁', 'Ants are very strong.', '蚂蚁力气很大。'],
+  ['tail', '/teɪl/', 'n.', '尾巴', 'The dog is wagging its tail.', '狗在摇尾巴。'],
+  ['wing', '/wɪŋ/', 'n.', '翅膀', 'Birds have two wings.', '鸟有两只翅膀。'],
+  ['feather', '/ˈfeð.ər/', 'n.', '羽毛', 'I found a white feather.', '我找到了一根白羽毛。'],
+  ['wild', '/waɪld/', 'adj.', '野生的', 'Lions are wild animals.', '狮子是野生动物。'],
+  ['feed', '/fiːd/', 'v.', '喂养', 'I feed my cat twice a day.', '我每天喂两次猫。'],
+];
+
+// ---- src/words/nature.js ----
+// 自然与环境 · 目标 40 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_NATURE = [
+  ['nature', '/ˈneɪ.tʃər/', 'n.', '自然；大自然', 'I love walking in nature.', '我喜欢在大自然中散步。'],
+  ['environment', '/ɪnˈvaɪ.rən.mənt/', 'n.', '环境', 'We must protect the environment.', '我们必须保护环境。'],
+  ['plant', '/plɑːnt/', 'n.', '植物', 'Water the plants every day.', '每天给植物浇水。'],
+  ['tree', '/triː/', 'n.', '树', 'There is a bird in the tree.', '树上有只鸟。'],
+  ['flower', '/flaʊər/', 'n.', '花', 'She picked some flowers for her mum.', '她给妈妈摘了一些花。'],
+  ['grass', '/ɡrɑːs/', 'n.', '草', 'Please keep off the grass.', '请勿践踏草地。'],
+  ['leaf', '/liːf/', 'n.', '叶子', 'The leaves turn red in autumn.', '秋天叶子变红。'],
+  ['forest', '/ˈfɒr.ɪst/', 'n.', '森林', 'Many animals live in the forest.', '很多动物生活在森林里。'],
+  ['jungle', '/ˈdʒʌŋ.ɡəl/', 'n.', '丛林', 'Monkeys live in the jungle.', '猴子生活在丛林里。'],
+  ['mountain', '/ˈmaʊn.tɪn/', 'n.', '山', 'We climbed a high mountain.', '我们爬了一座高山。'],
+  ['hill', '/hɪl/', 'n.', '小山；山丘', 'Our house is on a hill.', '我们家在一座小山上。'],
+  ['river', '/ˈrɪv.ər/', 'n.', '河', 'The river goes through the city.', '这条河穿过城市。'],
+  ['lake', '/leɪk/', 'n.', '湖', 'We went swimming in the lake.', '我们去湖里游泳了。'],
+  ['waterfall', '/ˈwɔː.tə.fɔːl/', 'n.', '瀑布', 'The waterfall is very high.', '这个瀑布很高。'],
+  ['sea', '/siː/', 'n.', '海', 'I like swimming in the sea.', '我喜欢在海里游泳。'],
+  ['ocean', '/ˈəʊ.ʃən/', 'n.', '海洋', 'The Pacific is the biggest ocean.', '太平洋是最大的海洋。'],
+  ['beach', '/biːtʃ/', 'n.', '海滩', 'We played on the beach all day.', '我们在海滩上玩了一整天。'],
+  ['coast', '/kəʊst/', 'n.', '海岸', 'We drove along the coast.', '我们沿着海岸开车。'],
+  ['wave', '/weɪv/', 'n.', '波浪；挥手', 'The waves are very big today.', '今天浪很大。'],
+  ['island', '/ˈaɪ.lənd/', 'n.', '岛', 'They live on a small island.', '他们住在一个小岛上。'],
+  ['desert', '/ˈdez.ət/', 'n.', '沙漠', 'It is very hot in the desert.', '沙漠里非常热。'],
+  ['field', '/fiːld/', 'n.', '田地；场地', 'The cows are in the field.', '奶牛在田里。'],
+  ['countryside', '/ˈkʌn.tri.saɪd/', 'n.', '乡村', 'I like the quiet countryside.', '我喜欢安静的乡村。'],
+  ['cave', '/keɪv/', 'n.', '山洞', 'We found a dark cave.', '我们发现了一个黑暗的山洞。'],
+  ['sand', '/sænd/', 'n.', '沙子', 'The children are playing in the sand.', '孩子们在玩沙子。'],
+  ['rock', '/rɒk/', 'n.', '岩石', 'We sat on a big rock.', '我们坐在一块大石头上。'],
+  ['stone', '/stəʊn/', 'n.', '石头', 'The old house is made of stone.', '这座老房子是用石头建的。'],
+  ['land', '/lænd/', 'n.', '陆地；土地', 'Frogs live on land and in water.', '青蛙在陆地和水里都能生活。'],
+  ['earth', '/ɜːθ/', 'n.', '地球；泥土', 'The Earth goes around the sun.', '地球绕着太阳转。'],
+  ['planet', '/ˈplæn.ɪt/', 'n.', '行星', 'Mars is a red planet.', '火星是一颗红色的行星。'],
+  ['moon', '/muːn/', 'n.', '月亮', 'The moon is very bright tonight.', '今晚的月亮很亮。'],
+  ['star', '/stɑːr/', 'n.', '星星；明星', 'I can see many stars in the sky.', '我能看到天上有很多星星。'],
+  ['space', '/speɪs/', 'n.', '太空；空间', 'I want to travel into space.', '我想去太空旅行。'],
+  ['air', '/eər/', 'n.', '空气', 'The air is fresh in the mountains.', '山里的空气很新鲜。'],
+  ['fire', '/faɪər/', 'n.', '火', "Don't play with fire.", '不要玩火。'],
+  ['rubbish', '/ˈrʌb.ɪʃ/', 'n.', '垃圾', 'Put your rubbish in the bin.', '把垃圾扔进垃圾桶。'],
+  ['pollution', '/pəˈluː.ʃən/', 'n.', '污染', 'Cars cause a lot of pollution.', '汽车造成很多污染。'],
+  ['recycle', '/ˌriːˈsaɪ.kəl/', 'v.', '回收利用', 'We recycle paper and bottles.', '我们回收纸和瓶子。'],
+  ['protect', '/prəˈtekt/', 'v.', '保护', 'We should protect wild animals.', '我们应该保护野生动物。'],
+  ['grow', '/ɡrəʊ/', 'v.', '生长；种植', 'We grow vegetables in our garden.', '我们在花园里种菜。'],
+];
+
+// ---- src/words/shopping.js ----
+// 购物与金钱 · 目标 50 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_SHOPPING = [
+  ['shop', '/ʃɒp/', 'n.', '商店', 'The shop opens at nine.', '这家店九点开门。'],
+  ['shopping', '/ˈʃɒp.ɪŋ/', 'n.', '购物', 'I go shopping with my mum on Saturdays.', '我星期六和妈妈去购物。'],
+  ['supermarket', '/ˈsuː.pəˌmɑː.kɪt/', 'n.', '超市', 'We buy food at the supermarket.', '我们在超市买食物。'],
+  ['shopping centre', '/ˈʃɒp.ɪŋ ˌsen.tər/', 'n.', '购物中心', 'The new shopping centre is very big.', '新开的购物中心很大。'],
+  ['department store', '/dɪˈpɑːt.mənt ˌstɔːr/', 'n.', '百货商店', 'You can buy almost anything in a department store.', '在百货商店几乎什么都能买到。'],
+  ['bakery', '/ˈbeɪ.kər.i/', 'n.', '面包店', 'The bakery sells fresh bread.', '面包店卖新鲜面包。'],
+  ['shop assistant', '/ˈʃɒp əˌsɪs.tənt/', 'n.', '店员', 'The shop assistant helped me find a jacket.', '店员帮我找到了一件夹克。'],
+  ['shopkeeper', '/ˈʃɒpˌkiː.pər/', 'n.', '店主', 'The shopkeeper is very friendly.', '店主很友好。'],
+  ['customer', '/ˈkʌs.tə.mər/', 'n.', '顾客', 'The shop has a lot of customers today.', '今天店里顾客很多。'],
+  ['money', '/ˈmʌn.i/', 'n.', '钱', 'How much money do you have?', '你有多少钱？'],
+  ['cash', '/kæʃ/', 'n.', '现金', 'Can I pay in cash?', '我能付现金吗？'],
+  ['coin', '/kɔɪn/', 'n.', '硬币', 'I found a coin on the floor.', '我在地上捡到一枚硬币。'],
+  ['pound', '/paʊnd/', 'n.', '英镑；磅', 'This book costs ten pounds.', '这本书十英镑。'],
+  ['euro', '/ˈjʊə.rəʊ/', 'n.', '欧元', 'The ticket is twenty euros.', '票价二十欧元。'],
+  ['dollar', '/ˈdɒl.ər/', 'n.', '美元', 'It costs five dollars.', '它要五美元。'],
+  ['cent', '/sent/', 'n.', '分（货币单位）', 'This pen costs fifty cents.', '这支笔五十美分。'],
+  ['price', '/praɪs/', 'n.', '价格', 'What is the price of this bag?', '这个包多少钱？'],
+  ['cost', '/kɒst/', 'v.', '花费；价钱是', 'How much does it cost?', '它多少钱？'],
+  ['pay', '/peɪ/', 'v.', '付钱', 'I paid for the tickets.', '我付了票钱。'],
+  ['buy', '/baɪ/', 'v.', '买', 'I want to buy a new bike.', '我想买一辆新自行车。'],
+  ['sell', '/sel/', 'v.', '卖', 'They sell fruit at the market.', '他们在市场卖水果。'],
+  ['spend', '/spend/', 'v.', '花（钱、时间）', "Don't spend all your money.", '别把钱都花光了。'],
+  ['save', '/seɪv/', 'v.', '节省；储蓄；救', 'I am saving money for a new phone.', '我在存钱买新手机。'],
+  ['cheap', '/tʃiːp/', 'adj.', '便宜的', 'These shoes are cheap.', '这双鞋很便宜。'],
+  ['expensive', '/ɪkˈspen.sɪv/', 'adj.', '昂贵的', 'That watch is too expensive.', '那块手表太贵了。'],
+  ['sale', '/seɪl/', 'n.', '出售；打折', 'Everything is half price in the sale.', '打折期间所有东西都半价。'],
+  ['discount', '/ˈdɪs.kaʊnt/', 'n.', '折扣', 'Students get a ten percent discount.', '学生可以打九折。'],
+  ['bargain', '/ˈbɑː.ɡɪn/', 'n.', '便宜货', 'This coat was a real bargain.', '这件外套真划算。'],
+  ['receipt', '/rɪˈsiːt/', 'n.', '收据；小票', 'Keep the receipt.', '把小票留着。'],
+  ['change', '/tʃeɪndʒ/', 'n.', '零钱；改变', "Here's your change.", '这是找您的零钱。'],
+  ['credit card', '/ˈkred.ɪt ˌkɑːd/', 'n.', '信用卡', 'Can I pay by credit card?', '我能用信用卡付款吗？'],
+  ['wallet', '/ˈwɒl.ɪt/', 'n.', '钱包', 'He put his wallet in his pocket.', '他把钱包放进口袋。'],
+  ['basket', '/ˈbɑː.skɪt/', 'n.', '篮子', 'Put the apples in the basket.', '把苹果放进篮子里。'],
+  ['trolley', '/ˈtrɒl.i/', 'n.', '手推车', 'Get a trolley. We need lots of things.', '推辆手推车吧，我们要买很多东西。'],
+  ['queue', '/kjuː/', 'n.', '队；排队', 'There is a long queue at the checkout.', '收银台排着长队。'],
+  ['size', '/saɪz/', 'n.', '尺码；大小', 'What size are your shoes?', '你穿多大码的鞋？'],
+  ['gift', '/ɡɪft/', 'n.', '礼品；天赋', 'This is a gift for you.', '这是送你的礼物。'],
+  ['free', '/friː/', 'adj.', '免费的；空闲的', 'The museum is free on Sundays.', '博物馆星期天免费。'],
+  ['packet', '/ˈpæk.ɪt/', 'n.', '小包；小袋', 'I bought a packet of biscuits.', '我买了一包饼干。'],
+  ['jar', '/dʒɑːr/', 'n.', '罐子；广口瓶', 'There is a jar of honey on the table.', '桌上有一罐蜂蜜。'],
+  ['tin', '/tɪn/', 'n.', '罐头；锡', 'Open a tin of beans.', '打开一罐豆子。'],
+  ['shopping list', '/ˈʃɒp.ɪŋ ˌlɪst/', 'n.', '购物清单', 'Did you bring the shopping list?', '你带购物清单了吗？'],
+  ['pocket money', '/ˈpɒk.ɪt ˌmʌn.i/', 'n.', '零花钱', 'I get pocket money every week.', '我每周有零花钱。'],
+  ['open', '/ˈəʊ.pən/', 'adj.', '开着的；打开', 'Is the shop open on Sunday?', '这家店星期天开门吗？'],
+  ['closed', '/kləʊzd/', 'adj.', '关闭的', 'Sorry, we are closed.', '抱歉，我们关门了。'],
+  ['deliver', '/dɪˈlɪv.ər/', 'v.', '递送；送货', 'They deliver pizza to your home.', '他们送比萨上门。'],
+  ['brand', '/brænd/', 'n.', '品牌', 'What brand are your trainers?', '你的运动鞋是什么牌子的？'],
+  ['label', '/ˈleɪ.bəl/', 'n.', '标签', 'Read the label before you buy.', '买之前看看标签。'],
+  ['rich', '/rɪtʃ/', 'adj.', '富有的', 'He is a rich businessman.', '他是一个富有的商人。'],
+  ['poor', '/pɔːr/', 'adj.', '贫穷的；可怜的', 'The poor dog was very hungry.', '这只可怜的狗很饿。'],
+];
+
+// ---- src/words/work.js ----
+// 工作与职业 · 目标 50 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_WORK = [
+  ['job', '/dʒɒb/', 'n.', '工作', 'What job do you want to do?', '你想做什么工作？'],
+  ['work', '/wɜːk/', 'v.', '工作；运转', 'My mum works in a hospital.', '我妈妈在医院工作。'],
+  ['worker', '/ˈwɜː.kər/', 'n.', '工人；员工', 'The factory has 200 workers.', '这家工厂有 200 名工人。'],
+  ['office', '/ˈɒf.ɪs/', 'n.', '办公室', 'My dad works in an office.', '我爸爸在办公室工作。'],
+  ['factory', '/ˈfæk.tər.i/', 'n.', '工厂', 'They make cars in this factory.', '这家工厂生产汽车。'],
+  ['company', '/ˈkʌm.pə.ni/', 'n.', '公司', 'She works for a big company.', '她在一家大公司工作。'],
+  ['business', '/ˈbɪz.nɪs/', 'n.', '生意；商业', 'My uncle has his own business.', '我叔叔自己做生意。'],
+  ['boss', '/bɒs/', 'n.', '老板', 'His boss is very kind.', '他的老板人很好。'],
+  ['manager', '/ˈmæn.ɪ.dʒər/', 'n.', '经理', 'I want to speak to the manager.', '我想和经理谈谈。'],
+  ['meeting', '/ˈmiː.tɪŋ/', 'n.', '会议', 'Dad has a meeting at ten.', '爸爸十点要开会。'],
+  ['interview', '/ˈɪn.tə.vjuː/', 'n.', '面试；采访', 'She has a job interview tomorrow.', '她明天有个工作面试。'],
+  ['earn', '/ɜːn/', 'v.', '挣（钱）', 'He earns money by washing cars.', '他靠洗车挣钱。'],
+  ['colleague', '/ˈkɒl.iːɡ/', 'n.', '同事', 'Mum had lunch with her colleagues.', '妈妈和同事一起吃了午饭。'],
+  ['staff', '/stɑːf/', 'n.', '全体员工', 'The hotel staff are very helpful.', '酒店员工非常乐于助人。'],
+  ['doctor', '/ˈdɒk.tər/', 'n.', '医生', 'You should see a doctor.', '你应该去看医生。'],
+  ['dentist', '/ˈden.tɪst/', 'n.', '牙医', 'I go to the dentist twice a year.', '我一年看两次牙医。'],
+  ['nurse', '/nɜːs/', 'n.', '护士', 'The nurse gave me some medicine.', '护士给了我一些药。'],
+  ['vet', '/vet/', 'n.', '兽医', 'We took our cat to the vet.', '我们带猫去看兽医。'],
+  ['police officer', '/pəˈliːs ˌɒf.ɪ.sər/', 'n.', '警察', 'Ask a police officer for help.', '向警察求助。'],
+  ['police', '/pəˈliːs/', 'n.', '警方；警察', 'Call the police!', '快报警！'],
+  ['firefighter', '/ˈfaɪəˌfaɪ.tər/', 'n.', '消防员', 'The firefighters put out the fire.', '消防员扑灭了大火。'],
+  ['farmer', '/ˈfɑː.mər/', 'n.', '农民', 'The farmer has lots of sheep.', '这位农民养了很多羊。'],
+  ['chef', '/ʃef/', 'n.', '厨师', 'The chef cooked a wonderful meal.', '厨师做了一顿美味的饭菜。'],
+  ['waiter', '/ˈweɪ.tər/', 'n.', '服务员（男）', 'The waiter brought our food.', '服务员把菜端了上来。'],
+  ['waitress', '/ˈweɪ.trəs/', 'n.', '女服务员', 'The waitress gave us the menu.', '女服务员给了我们菜单。'],
+  ['driver', '/ˈdraɪ.vər/', 'n.', '司机', 'The bus driver said good morning.', '公交车司机说了声早上好。'],
+  ['pilot', '/ˈpaɪ.lət/', 'n.', '飞行员', 'I want to be a pilot.', '我想当飞行员。'],
+  ['engineer', '/ˌen.dʒɪˈnɪər/', 'n.', '工程师', 'My aunt is an engineer.', '我阿姨是一名工程师。'],
+  ['scientist', '/ˈsaɪən.tɪst/', 'n.', '科学家', 'Scientists study the world around us.', '科学家研究我们周围的世界。'],
+  ['artist', '/ˈɑː.tɪst/', 'n.', '艺术家；画家', 'The artist painted a picture of the sea.', '画家画了一幅大海的画。'],
+  ['actor', '/ˈæk.tər/', 'n.', '演员', 'He is a famous actor.', '他是一位著名的演员。'],
+  ['actress', '/ˈæk.trəs/', 'n.', '女演员', 'She wants to be an actress.', '她想当女演员。'],
+  ['singer', '/ˈsɪŋ.ər/', 'n.', '歌手', 'She is my favourite singer.', '她是我最喜欢的歌手。'],
+  ['musician', '/mjuːˈzɪʃ.ən/', 'n.', '音乐家', 'The musician played the violin.', '音乐家拉起了小提琴。'],
+  ['writer', '/ˈraɪ.tər/', 'n.', '作家', "She is a writer of children's books.", '她是一位儿童书作家。'],
+  ['journalist', '/ˈdʒɜː.nə.lɪst/', 'n.', '记者', 'The journalist asked many questions.', '记者问了很多问题。'],
+  ['photographer', '/fəˈtɒɡ.rə.fər/', 'n.', '摄影师', 'The photographer took our photo.', '摄影师给我们拍了照。'],
+  ['designer', '/dɪˈzaɪ.nər/', 'n.', '设计师', 'She is a fashion designer.', '她是一名时装设计师。'],
+  ['hairdresser', '/ˈheəˌdres.ər/', 'n.', '理发师', 'I went to the hairdresser yesterday.', '我昨天去理发了。'],
+  ['mechanic', '/məˈkæn.ɪk/', 'n.', '机修工', 'The mechanic fixed our car.', '修理工修好了我们的车。'],
+  ['receptionist', '/rɪˈsep.ʃən.ɪst/', 'n.', '接待员', 'The receptionist gave us our room key.', '接待员给了我们房间钥匙。'],
+  ['cleaner', '/ˈkliː.nər/', 'n.', '清洁工', 'The cleaner comes every Monday.', '清洁工每周一来。'],
+  ['builder', '/ˈbɪl.dər/', 'n.', '建筑工人', 'The builders are making a new house.', '建筑工人在盖新房子。'],
+  ['secretary', '/ˈsek.rə.tər.i/', 'n.', '秘书', 'The secretary answered the phone.', '秘书接了电话。'],
+  ['tour guide', '/ˈtʊə ˌɡaɪd/', 'n.', '导游', 'Our tour guide showed us the castle.', '导游带我们参观了城堡。'],
+  ['astronaut', '/ˈæs.trə.nɔːt/', 'n.', '宇航员', 'The astronaut went to space.', '宇航员去了太空。'],
+  ['programmer', '/ˈprəʊ.ɡræm.ər/', 'n.', '程序员', 'My cousin is a computer programmer.', '我表哥是一名程序员。'],
+  ['footballer', '/ˈfʊt.bɔː.lər/', 'n.', '足球运动员', 'He wants to be a footballer.', '他想当足球运动员。'],
+  ['king', '/kɪŋ/', 'n.', '国王', 'The king lived in a big palace.', '国王住在一座大宫殿里。'],
+  ['queen', '/kwiːn/', 'n.', '女王；王后', 'The queen wore a gold crown.', '女王戴着金色的王冠。'],
+];
+
+// ---- src/words/tech.js ----
+// 科技与通讯 · 目标 40 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_TECH = [
+  ['computer', '/kəmˈpjuː.tər/', 'n.', '电脑', 'I use the computer for my homework.', '我用电脑写作业。'],
+  ['laptop', '/ˈlæp.tɒp/', 'n.', '笔记本电脑', 'Dad takes his laptop to work.', '爸爸带笔记本电脑去上班。'],
+  ['tablet', '/ˈtæb.lət/', 'n.', '平板电脑；药片', 'I read books on my tablet.', '我在平板上看书。'],
+  ['phone', '/fəʊn/', 'n.', '电话；手机', 'Can I use your phone?', '我能用一下你的电话吗？'],
+  ['mobile phone', '/ˌməʊ.baɪl ˈfəʊn/', 'n.', '手机', 'Turn off your mobile phone in class.', '上课时关掉手机。'],
+  ['smartphone', '/ˈsmɑːt.fəʊn/', 'n.', '智能手机', 'My sister got a new smartphone.', '我姐姐买了新智能手机。'],
+  ['screen', '/skriːn/', 'n.', '屏幕', "Don't sit too close to the screen.", '不要离屏幕太近。'],
+  ['keyboard', '/ˈkiː.bɔːd/', 'n.', '键盘', 'The keyboard on my laptop is broken.', '我笔记本电脑的键盘坏了。'],
+  ['printer', '/ˈprɪn.tər/', 'n.', '打印机', 'The printer has no paper.', '打印机没纸了。'],
+  ['print', '/prɪnt/', 'v.', '打印', 'Can you print this page for me?', '你能帮我打印这一页吗？'],
+  ['internet', '/ˈɪn.tə.net/', 'n.', '互联网', 'I found the information on the internet.', '我在网上找到了这些信息。'],
+  ['website', '/ˈweb.saɪt/', 'n.', '网站', 'Look at the school website.', '看看学校网站。'],
+  ['link', '/lɪŋk/', 'n.', '链接', 'Click on this link.', '点击这个链接。'],
+  ['email', '/ˈiː.meɪl/', 'n.', '电子邮件', 'I sent you an email.', '我给你发了一封邮件。'],
+  ['message', '/ˈmes.ɪdʒ/', 'n.', '消息；留言', 'Can I leave a message?', '我能留个言吗？'],
+  ['text', '/tekst/', 'v.', '发短信；文本', 'Text me when you get home.', '到家了给我发个短信。'],
+  ['app', '/æp/', 'n.', '应用程序', 'This app helps me learn English.', '这个应用帮我学英语。'],
+  ['online', '/ˌɒnˈlaɪn/', 'adj.', '在线的；网上的', 'I play chess online with my friend.', '我和朋友在网上下棋。'],
+  ['download', '/ˌdaʊnˈləʊd/', 'v.', '下载', 'I downloaded a new game.', '我下载了一个新游戏。'],
+  ['upload', '/ʌpˈləʊd/', 'v.', '上传', 'She uploaded the photos.', '她上传了照片。'],
+  ['password', '/ˈpɑːs.wɜːd/', 'n.', '密码', "Don't tell anyone your password.", '别把你的密码告诉任何人。'],
+  ['log in', '/ˌlɒɡ ˈɪn/', 'phr.', '登录', 'Log in with your name and password.', '用你的名字和密码登录。'],
+  ['click', '/klɪk/', 'v.', '点击', 'Click the button to start.', '点击按钮开始。'],
+  ['search', '/sɜːtʃ/', 'v.', '搜索；寻找', 'I searched for the answer online.', '我在网上搜索答案。'],
+  ['chat', '/tʃæt/', 'v.', '聊天', 'I often chat with my friends online.', '我常在网上和朋友聊天。'],
+  ['call', '/kɔːl/', 'v.', '打电话；叫', "I'll call you tonight.", '我今晚给你打电话。'],
+  ['technology', '/tekˈnɒl.ə.dʒi/', 'n.', '技术；科技', 'Technology changes very fast.', '科技变化得很快。'],
+  ['battery', '/ˈbæt.ər.i/', 'n.', '电池', 'My phone battery is low.', '我手机快没电了。'],
+  ['headphones', '/ˈhed.fəʊnz/', 'n.', '耳机', 'I listen to music with headphones.', '我用耳机听音乐。'],
+  ['file', '/faɪl/', 'n.', '文件', 'Save the file before you close it.', '关闭前先保存文件。'],
+  ['blog', '/blɒɡ/', 'n.', '博客', 'She writes a blog about cooking.', '她写一个关于烹饪的博客。'],
+  ['post', '/pəʊst/', 'v.', '邮寄；发布', 'I posted a photo online.', '我在网上发了一张照片。'],
+  ['envelope', '/ˈen.və.ləʊp/', 'n.', '信封', 'Put the letter in the envelope.', '把信装进信封。'],
+  ['send', '/send/', 'v.', '发送；寄', 'Send me a message later.', '待会儿给我发个消息。'],
+  ['receive', '/rɪˈsiːv/', 'v.', '收到', 'I received a letter from my pen friend.', '我收到了笔友的来信。'],
+  ['contact', '/ˈkɒn.tækt/', 'v.', '联系', 'You can contact me by email.', '你可以发邮件联系我。'],
+  ['robot', '/ˈrəʊ.bɒt/', 'n.', '机器人', 'The robot can clean the floor.', '这个机器人会拖地。'],
+  ['machine', '/məˈʃiːn/', 'n.', '机器', 'This machine makes coffee.', '这台机器能做咖啡。'],
+  ['turn on', '/ˌtɜːn ˈɒn/', 'phr.', '打开（电器）', 'Turn on the computer.', '打开电脑。'],
+  ['turn off', '/ˌtɜːn ˈɒf/', 'phr.', '关掉（电器）', 'Turn off the TV, please.', '请关掉电视。'],
+];
+
+// ---- src/words/time.js ----
+// 时间与日期 · 目标 60 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_TIME = [
+  ['time', '/taɪm/', 'n.', '时间；次', 'What time is it?', '现在几点了？'],
+  ['day', '/deɪ/', 'n.', '天；白天', 'There are seven days in a week.', '一周有七天。'],
+  ['week', '/wiːk/', 'n.', '星期；周', 'I have piano lessons twice a week.', '我每周上两次钢琴课。'],
+  ['weekday', '/ˈwiːk.deɪ/', 'n.', '工作日', 'I get up at seven on weekdays.', '我工作日七点起床。'],
+  ['weekend', '/ˌwiːkˈend/', 'n.', '周末', 'What did you do at the weekend?', '你周末做了什么？'],
+  ['month', '/mʌnθ/', 'n.', '月', 'My birthday is next month.', '我的生日在下个月。'],
+  ['year', '/jɪər/', 'n.', '年；岁', 'I am eleven years old.', '我十一岁。'],
+  ['century', '/ˈsen.tʃər.i/', 'n.', '世纪', 'This castle is from the 12th century.', '这座城堡建于 12 世纪。'],
+  ['today', '/təˈdeɪ/', 'adv.', '今天', 'What day is it today?', '今天星期几？'],
+  ['tomorrow', '/təˈmɒr.əʊ/', 'adv.', '明天', 'See you tomorrow!', '明天见！'],
+  ['yesterday', '/ˈjes.tə.deɪ/', 'adv.', '昨天', 'I went to the park yesterday.', '我昨天去了公园。'],
+  ['tonight', '/təˈnaɪt/', 'adv.', '今晚', 'What are you doing tonight?', '你今晚做什么？'],
+  ['morning', '/ˈmɔː.nɪŋ/', 'n.', '早上；上午', 'I have breakfast in the morning.', '我早上吃早饭。'],
+  ['afternoon', '/ˌɑːf.təˈnuːn/', 'n.', '下午', 'We play sports in the afternoon.', '我们下午做运动。'],
+  ['evening', '/ˈiːv.nɪŋ/', 'n.', '傍晚；晚上', 'I do my homework in the evening.', '我晚上做作业。'],
+  ['night', '/naɪt/', 'n.', '夜晚', 'Good night! Sleep well.', '晚安！睡个好觉。'],
+  ['midnight', '/ˈmɪd.naɪt/', 'n.', '午夜', 'The party finished at midnight.', '聚会午夜才结束。'],
+  ['midday', '/ˌmɪdˈdeɪ/', 'n.', '中午', 'We have lunch at midday.', '我们中午吃午饭。'],
+  ['Monday', '/ˈmʌn.deɪ/', 'n.', '星期一', 'School starts again on Monday.', '星期一又开学了。'],
+  ['Tuesday', '/ˈtʃuːz.deɪ/', 'n.', '星期二', 'I have swimming on Tuesday.', '我星期二游泳。'],
+  ['Wednesday', '/ˈwenz.deɪ/', 'n.', '星期三', 'We have art on Wednesday.', '我们星期三有美术课。'],
+  ['Thursday', '/ˈθɜːz.deɪ/', 'n.', '星期四', 'The test is on Thursday.', '测验在星期四。'],
+  ['Friday', '/ˈfraɪ.deɪ/', 'n.', '星期五', 'I love Friday afternoons.', '我喜欢星期五下午。'],
+  ['Saturday', '/ˈsæt.ə.deɪ/', 'n.', '星期六', 'We go shopping on Saturday.', '我们星期六去购物。'],
+  ['Sunday', '/ˈsʌn.deɪ/', 'n.', '星期日', 'We visit Grandma on Sunday.', '我们星期天去看奶奶。'],
+  ['January', '/ˈdʒæn.ju.ə.ri/', 'n.', '一月', 'It is very cold in January.', '一月很冷。'],
+  ['February', '/ˈfeb.ru.ər.i/', 'n.', '二月', 'February is the shortest month.', '二月是最短的月份。'],
+  ['March', '/mɑːtʃ/', 'n.', '三月', 'My birthday is in March.', '我的生日在三月。'],
+  ['April', '/ˈeɪ.prəl/', 'n.', '四月', 'It often rains in April.', '四月常下雨。'],
+  ['May', '/meɪ/', 'n.', '五月', 'The flowers are beautiful in May.', '五月的花很美。'],
+  ['June', '/dʒuːn/', 'n.', '六月', 'School finishes in June.', '学校六月放假。'],
+  ['July', '/dʒʊˈlaɪ/', 'n.', '七月', 'We go on holiday in July.', '我们七月去度假。'],
+  ['August', '/ˈɔː.ɡəst/', 'n.', '八月', 'August is the hottest month.', '八月是最热的月份。'],
+  ['September', '/sepˈtem.bər/', 'n.', '九月', 'The new term starts in September.', '新学期九月开始。'],
+  ['October', '/ɒkˈtəʊ.bər/', 'n.', '十月', 'National Day is in October.', '国庆节在十月。'],
+  ['November', '/nəʊˈvem.bər/', 'n.', '十一月', 'It gets dark early in November.', '十一月天黑得早。'],
+  ['December', '/dɪˈsem.bər/', 'n.', '十二月', 'Christmas is in December.', '圣诞节在十二月。'],
+  ['hour', '/aʊər/', 'n.', '小时', 'The film is two hours long.', '这部电影长两个小时。'],
+  ['minute', '/ˈmɪn.ɪt/', 'n.', '分钟', 'Wait a minute, please.', '请稍等一下。'],
+  ['second', '/ˈsek.ənd/', 'n.', '秒；第二', 'The race lasted ten seconds.', '比赛持续了十秒。'],
+  ["o'clock", '/əˈklɒk/', 'adv.', '……点钟', "I get up at seven o'clock.", '我七点起床。'],
+  ['half past', '/ˈhɑːf ˌpɑːst/', 'phr.', '……点半', 'The film starts at half past six.', '电影六点半开始。'],
+  ['quarter', '/ˈkwɔː.tər/', 'n.', '一刻钟；四分之一', 'It is a quarter past three.', '现在三点一刻。'],
+  ['a.m.', '/ˌeɪ ˈem/', 'adv.', '上午', 'The shop opens at 9 a.m.', '商店上午九点开门。'],
+  ['p.m.', '/ˌpiː ˈem/', 'adv.', '下午（写在钟点后）', 'The class finishes at 4 p.m.', '课下午四点结束。'],
+  ['date', '/deɪt/', 'n.', '日期', "What's the date today?", '今天几号？'],
+  ['calendar', '/ˈkæl.ən.dər/', 'n.', '日历', 'Write the date on the calendar.', '把日期写在日历上。'],
+  ['diary', '/ˈdaɪə.ri/', 'n.', '日记；日程本', 'I write in my diary every night.', '我每晚写日记。'],
+  ['past', '/pɑːst/', 'n.', '过去', 'People in the past had no phones.', '过去的人没有手机。'],
+  ['future', '/ˈfjuː.tʃər/', 'n.', '将来', 'What do you want to do in the future?', '你将来想做什么？'],
+  ['moment', '/ˈməʊ.mənt/', 'n.', '片刻；时刻', 'Just a moment, please.', '请稍等片刻。'],
+  ['early', '/ˈɜː.li/', 'adj.', '早的；提早', 'I got up early today.', '我今天起得早。'],
+  ['late', '/leɪt/', 'adj.', '迟的；晚的', "Don't be late for school.", '上学别迟到。'],
+  ['soon', '/suːn/', 'adv.', '不久；很快', 'See you soon!', '回头见！'],
+  ['now', '/naʊ/', 'adv.', '现在', 'I am doing my homework now.', '我现在正在写作业。'],
+  ['ago', '/əˈɡəʊ/', 'adv.', '以前', 'I started learning English three years ago.', '我三年前开始学英语。'],
+  ['Christmas', '/ˈkrɪs.məs/', 'n.', '圣诞节', 'What did you get for Christmas?', '你圣诞节收到了什么？'],
+  ['New Year', '/ˌnjuː ˈjɪər/', 'n.', '新年', 'Happy New Year!', '新年快乐！'],
+];
+
+// ---- src/words/numbers.js ----
+// 数字与数量 · 目标 50 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_NUMBERS = [
+  ['number', '/ˈnʌm.bər/', 'n.', '数字；号码', 'What is your phone number?', '你的电话号码是多少？'],
+  ['zero', '/ˈzɪə.rəʊ/', 'num.', '零', 'It is zero degrees outside.', '外面零度。'],
+  ['one', '/wʌn/', 'num.', '一', 'I have one brother.', '我有一个兄弟。'],
+  ['two', '/tuː/', 'num.', '二', 'I have two cats.', '我有两只猫。'],
+  ['three', '/θriː/', 'num.', '三', 'There are three apples on the table.', '桌上有三个苹果。'],
+  ['four', '/fɔːr/', 'num.', '四', 'A car has four wheels.', '汽车有四个轮子。'],
+  ['five', '/faɪv/', 'num.', '五', 'I go to school five days a week.', '我一周上五天学。'],
+  ['six', '/sɪks/', 'num.', '六', 'The shop closes at six.', '商店六点关门。'],
+  ['seven', '/ˈsev.ən/', 'num.', '七', 'There are seven days in a week.', '一周有七天。'],
+  ['eight', '/eɪt/', 'num.', '八', 'A spider has eight legs.', '蜘蛛有八条腿。'],
+  ['nine', '/naɪn/', 'num.', '九', 'I go to bed at nine.', '我九点睡觉。'],
+  ['ten', '/ten/', 'num.', '十', 'Count from one to ten.', '从一数到十。'],
+  ['eleven', '/ɪˈlev.ən/', 'num.', '十一', 'I am eleven years old.', '我十一岁。'],
+  ['twelve', '/twelv/', 'num.', '十二', 'There are twelve months in a year.', '一年有十二个月。'],
+  ['thirteen', '/θɜːˈtiːn/', 'num.', '十三', 'My brother is thirteen.', '我哥哥十三岁。'],
+  ['fourteen', '/ˌfɔːˈtiːn/', 'num.', '十四', 'There are fourteen girls in my class.', '我们班有十四个女生。'],
+  ['fifteen', '/ˌfɪfˈtiːn/', 'num.', '十五', 'The bus comes every fifteen minutes.', '公交车每十五分钟一班。'],
+  ['sixteen', '/ˌsɪkˈstiːn/', 'num.', '十六', 'My cousin is sixteen.', '我表姐十六岁。'],
+  ['seventeen', '/ˌsev.ənˈtiːn/', 'num.', '十七', 'She will be seventeen next year.', '她明年十七岁。'],
+  ['eighteen', '/ˌeɪˈtiːn/', 'num.', '十八', 'You can drive at eighteen.', '十八岁就可以开车了。'],
+  ['nineteen', '/ˌnaɪnˈtiːn/', 'num.', '十九', 'There are nineteen students here.', '这里有十九个学生。'],
+  ['twenty', '/ˈtwen.ti/', 'num.', '二十', 'I have twenty pounds.', '我有二十英镑。'],
+  ['thirty', '/ˈθɜː.ti/', 'num.', '三十', 'There are thirty days in June.', '六月有三十天。'],
+  ['forty', '/ˈfɔː.ti/', 'num.', '四十', 'My dad is forty years old.', '我爸爸四十岁。'],
+  ['fifty', '/ˈfɪf.ti/', 'num.', '五十', 'The bag costs fifty pounds.', '这个包五十英镑。'],
+  ['hundred', '/ˈhʌn.drəd/', 'num.', '百', 'There are a hundred pupils in our year.', '我们年级有一百个学生。'],
+  ['thousand', '/ˈθaʊ.zənd/', 'num.', '千', 'Thousands of people came to the concert.', '成千上万的人来听音乐会。'],
+  ['million', '/ˈmɪl.jən/', 'num.', '百万', 'The city has ten million people.', '这座城市有一千万人口。'],
+  ['first', '/fɜːst/', 'num.', '第一；首先', 'January is the first month of the year.', '一月是一年的第一个月。'],
+  ['third', '/θɜːd/', 'num.', '第三', 'I came third in the race.', '我赛跑得了第三名。'],
+  ['fourth', '/fɔːθ/', 'num.', '第四', 'We live on the fourth floor.', '我们住在四楼。'],
+  ['fifth', '/fɪfθ/', 'num.', '第五', 'Today is her fifth birthday.', '今天是她五岁生日。'],
+  ['half', '/hɑːf/', 'n.', '一半', 'Can I have half of your sandwich?', '能给我一半你的三明治吗？'],
+  ['twice', '/twaɪs/', 'adv.', '两次；两倍', 'I brush my teeth twice a day.', '我一天刷两次牙。'],
+  ['once', '/wʌns/', 'adv.', '一次；曾经', 'I go swimming once a week.', '我一周游一次泳。'],
+  ['pair', '/peər/', 'n.', '一双；一对', 'I need a new pair of shoes.', '我需要一双新鞋。'],
+  ['dozen', '/ˈdʌz.ən/', 'n.', '一打；十二个', 'I bought a dozen eggs.', '我买了一打鸡蛋。'],
+  ['percent', '/pəˈsent/', 'n.', '百分之……', 'Fifty percent of the class are girls.', '班里百分之五十是女生。'],
+  ['kilo', '/ˈkiː.ləʊ/', 'n.', '千克；公斤', 'I want a kilo of apples.', '我要一公斤苹果。'],
+  ['gram', '/ɡræm/', 'n.', '克', 'Add 200 grams of sugar.', '加 200 克糖。'],
+  ['litre', '/ˈliː.tər/', 'n.', '升', 'Buy two litres of milk.', '买两升牛奶。'],
+  ['metre', '/ˈmiː.tər/', 'n.', '米（长度单位）', 'The pool is 25 metres long.', '泳池长 25 米。'],
+  ['centimetre', '/ˈsen.tɪˌmiː.tər/', 'n.', '厘米', 'The line is ten centimetres long.', '这条线长十厘米。'],
+  ['kilometre', '/kɪˈlɒm.ɪ.tər/', 'n.', '千米；公里', 'I live two kilometres from school.', '我家离学校两公里。'],
+  ['weight', '/weɪt/', 'n.', '重量；体重', 'What is the weight of this box?', '这个箱子有多重？'],
+  ['height', '/haɪt/', 'n.', '高度；身高', 'What is your height?', '你身高多少？'],
+  ['length', '/leŋθ/', 'n.', '长度', 'Measure the length of the table.', '量一下桌子的长度。'],
+  ['count', '/kaʊnt/', 'v.', '数；计算', 'Can you count to a hundred in English?', '你能用英语数到一百吗？'],
+  ['add', '/æd/', 'v.', '加；添加', 'Add two and three.', '把二和三加起来。'],
+  ['total', '/ˈtəʊ.təl/', 'n.', '总数；总计', 'The total is fifteen pounds.', '总共十五英镑。'],
+];
+
+// ---- src/words/feelings.js ----
+// 情感与性格 · 目标 50 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_FEELINGS = [
+  ['feeling', '/ˈfiː.lɪŋ/', 'n.', '感觉；感情', 'I have a feeling it will rain.', '我感觉要下雨了。'],
+  ['feel', '/fiːl/', 'v.', '感觉；觉得', 'How do you feel today?', '你今天感觉怎么样？'],
+  ['mood', '/muːd/', 'n.', '心情', 'Mum is in a good mood today.', '妈妈今天心情很好。'],
+  ['happy', '/ˈhæp.i/', 'adj.', '高兴的；快乐的', 'I am happy to see you.', '见到你我很高兴。'],
+  ['unhappy', '/ʌnˈhæp.i/', 'adj.', '不高兴的', 'He looks unhappy today.', '他今天看起来不开心。'],
+  ['sad', '/sæd/', 'adj.', '难过的', 'The film was very sad.', '这部电影很让人难过。'],
+  ['angry', '/ˈæŋ.ɡri/', 'adj.', '生气的', 'Dad was angry with me.', '爸爸生我的气了。'],
+  ['afraid', '/əˈfreɪd/', 'adj.', '害怕的', 'Are you afraid of the dark?', '你怕黑吗？'],
+  ['scared', '/skeəd/', 'adj.', '害怕的；恐惧的', 'I was scared of the big dog.', '我很怕那只大狗。'],
+  ['frightened', '/ˈfraɪ.tənd/', 'adj.', '受惊的；害怕的', 'The little girl was frightened by the noise.', '小女孩被噪音吓到了。'],
+  ['worried', '/ˈwʌr.id/', 'adj.', '担心的', 'I am worried about my exam.', '我担心我的考试。'],
+  ['worry', '/ˈwʌr.i/', 'v.', '担心', "Don't worry. Everything will be fine.", '别担心，一切都会好的。'],
+  ['nervous', '/ˈnɜː.vəs/', 'adj.', '紧张的', 'I feel nervous before tests.', '考试前我感到紧张。'],
+  ['upset', '/ʌpˈset/', 'adj.', '难过的；不安的', 'She was upset when she lost her phone.', '她丢了手机很难过。'],
+  ['bored', '/bɔːd/', 'adj.', '厌倦的；无聊的', "I am bored. Let's play a game.", '我好无聊，我们玩个游戏吧。'],
+  ['tired', '/taɪəd/', 'adj.', '累的', 'I am tired after the long walk.', '走了很远的路我很累。'],
+  ['excited', '/ɪkˈsaɪ.tɪd/', 'adj.', '兴奋的', 'I am excited about the holiday.', '我对假期感到很兴奋。'],
+  ['surprised', '/səˈpraɪzd/', 'adj.', '惊讶的', 'I was surprised to see him there.', '在那里见到他我很惊讶。'],
+  ['interested', '/ˈɪn.trə.stɪd/', 'adj.', '感兴趣的', 'I am interested in science.', '我对科学感兴趣。'],
+  ['lonely', '/ˈləʊn.li/', 'adj.', '孤独的', 'She felt lonely in the new city.', '她在新城市感到孤独。'],
+  ['proud', '/praʊd/', 'adj.', '自豪的', 'My parents are proud of me.', '我爸妈为我感到骄傲。'],
+  ['sorry', '/ˈsɒr.i/', 'adj.', '抱歉的；难过的', 'I am sorry I am late.', '对不起，我迟到了。'],
+  ['glad', '/ɡlæd/', 'adj.', '高兴的', 'I am glad you like the present.', '很高兴你喜欢这份礼物。'],
+  ['pleased', '/pliːzd/', 'adj.', '满意的；高兴的', 'The teacher was pleased with my work.', '老师对我的作业很满意。'],
+  ['confident', '/ˈkɒn.fɪ.dənt/', 'adj.', '自信的', 'She is confident about the test.', '她对考试很有信心。'],
+  ['calm', '/kɑːm/', 'adj.', '平静的；冷静的', 'Stay calm and listen.', '保持冷静，听我说。'],
+  ['friendly', '/ˈfrend.li/', 'adj.', '友好的', 'Our new neighbours are very friendly.', '我们的新邻居很友好。'],
+  ['kind', '/kaɪnd/', 'adj.', '善良的；种类', 'It is kind of you to help me.', '你帮我真是太好了。'],
+  ['polite', '/pəˈlaɪt/', 'adj.', '有礼貌的', 'Always be polite to older people.', '对长辈要有礼貌。'],
+  ['rude', '/ruːd/', 'adj.', '粗鲁的；无礼的', "It's rude to talk with your mouth full.", '嘴里塞满东西说话很不礼貌。'],
+  ['shy', '/ʃaɪ/', 'adj.', '害羞的', 'He is shy and quiet.', '他害羞又安静。'],
+  ['funny', '/ˈfʌn.i/', 'adj.', '好笑的；有趣的', 'My uncle tells funny jokes.', '我叔叔讲好笑的笑话。'],
+  ['clever', '/ˈklev.ər/', 'adj.', '聪明的', 'She is a clever girl.', '她是个聪明的女孩。'],
+  ['intelligent', '/ɪnˈtel.ɪ.dʒənt/', 'adj.', '聪明的；有智慧的', 'Dolphins are intelligent animals.', '海豚是聪明的动物。'],
+  ['stupid', '/ˈstjuː.pɪd/', 'adj.', '愚蠢的', 'It was a stupid mistake.', '那是个愚蠢的错误。'],
+  ['lazy', '/ˈleɪ.zi/', 'adj.', '懒惰的', "Don't be lazy. Do your homework!", '别偷懒，去写作业！'],
+  ['hard-working', '/ˌhɑːdˈwɜː.kɪŋ/', 'adj.', '勤奋的', 'She is a hard-working student.', '她是个勤奋的学生。'],
+  ['brave', '/breɪv/', 'adj.', '勇敢的', 'The brave firefighter saved the cat.', '勇敢的消防员救了那只猫。'],
+  ['careful', '/ˈkeə.fəl/', 'adj.', '小心的；仔细的', 'Be careful with the hot water.', '小心热水。'],
+  ['honest', '/ˈɒn.ɪst/', 'adj.', '诚实的', 'Always be honest.', '要永远诚实。'],
+  ['serious', '/ˈsɪə.ri.əs/', 'adj.', '严肃的；严重的', 'Our maths teacher is very serious.', '我们的数学老师很严肃。'],
+  ['cheerful', '/ˈtʃɪə.fəl/', 'adj.', '快乐的；开朗的', 'She is always cheerful.', '她总是很开朗。'],
+  ['crazy', '/ˈkreɪ.zi/', 'adj.', '疯狂的；着迷的', 'My brother is crazy about football.', '我哥哥对足球很着迷。'],
+  ['love', '/lʌv/', 'v.', '爱；喜欢', 'I love my family.', '我爱我的家人。'],
+  ['hate', '/heɪt/', 'v.', '讨厌；恨', 'I hate getting up early.', '我讨厌早起。'],
+  ['smile', '/smaɪl/', 'v.', '微笑', 'Smile for the camera!', '对着镜头笑一笑！'],
+  ['laugh', '/lɑːf/', 'v.', '笑', 'Everyone laughed at the joke.', '大家都被这个笑话逗笑了。'],
+  ['cry', '/kraɪ/', 'v.', '哭', 'The baby is crying.', '宝宝在哭。'],
+  ['hug', '/hʌɡ/', 'v.', '拥抱', 'She hugged her mum.', '她拥抱了妈妈。'],
+  ['kiss', '/kɪs/', 'v.', '亲吻', 'Mum kissed me goodnight.', '妈妈亲了我一下，跟我说晚安。'],
+];
+
+// ---- src/words/verbs.js ----
+// 常用动词 · 目标 200 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_VERBS = [
+  ['be', '/biː/', 'v.', '是；在', 'I want to be a doctor.', '我想成为一名医生。'],
+  ['have', '/hæv/', 'v.', '有；吃', 'I have two sisters.', '我有两个姐妹。'],
+  ['do', '/duː/', 'v.', '做', 'What do you do after school?', '你放学后做什么？'],
+  ['go', '/ɡəʊ/', 'v.', '去', 'We go to the park on Sundays.', '我们星期天去公园。'],
+  ['come', '/kʌm/', 'v.', '来', 'Can you come to my party?', '你能来参加我的聚会吗？'],
+  ['get', '/ɡet/', 'v.', '得到；变得；到达', 'I got a new bike for my birthday.', '我生日得到了一辆新自行车。'],
+  ['make', '/meɪk/', 'v.', '做；制作；使', "Let's make a cake.", '我们做个蛋糕吧。'],
+  ['take', '/teɪk/', 'v.', '拿；带走；花费（时间）', 'Take an umbrella with you.', '带把伞吧。'],
+  ['give', '/ɡɪv/', 'v.', '给', 'Give me the book, please.', '请把书给我。'],
+  ['put', '/pʊt/', 'v.', '放', 'Put your bag on the chair.', '把你的包放在椅子上。'],
+  ['see', '/siː/', 'v.', '看见', 'Can you see the bird?', '你能看见那只鸟吗？'],
+  ['look', '/lʊk/', 'v.', '看；看起来', 'Look at this picture.', '看这张图片。'],
+  ['stand', '/stænd/', 'v.', '站', 'Please stand in a line.', '请站成一排。'],
+  ['sit', '/sɪt/', 'v.', '坐', 'Sit next to me.', '坐在我旁边。'],
+  ['walk', '/wɔːk/', 'v.', '走；散步', 'I walk to school.', '我走路上学。'],
+  ['talk', '/tɔːk/', 'v.', '说话；谈话', 'Can I talk to you for a minute?', '我能和你谈一会儿吗？'],
+  ['speak', '/spiːk/', 'v.', '说（语言）；讲话', 'She speaks English and French.', '她会说英语和法语。'],
+  ['say', '/seɪ/', 'v.', '说', 'What did you say?', '你说什么？'],
+  ['tell', '/tel/', 'v.', '告诉；讲述', 'Tell me about your holiday.', '给我讲讲你的假期。'],
+  ['ask', '/ɑːsk/', 'v.', '问；请求', 'Can I ask you something?', '我能问你点事吗？'],
+  ['reply', '/rɪˈplaɪ/', 'v.', '回答；回复', 'Please reply to my email.', '请回复我的邮件。'],
+  ['listen', '/ˈlɪs.ən/', 'v.', '听', 'Listen to the teacher.', '听老师讲。'],
+  ['hear', '/hɪər/', 'v.', '听见', 'I can hear music.', '我能听见音乐。'],
+  ['read', '/riːd/', 'v.', '读；阅读', 'I read before bed.', '我睡前看书。'],
+  ['write', '/raɪt/', 'v.', '写', 'Write your name here.', '在这里写上你的名字。'],
+  ['know', '/nəʊ/', 'v.', '知道；认识', 'Do you know the answer?', '你知道答案吗？'],
+  ['think', '/θɪŋk/', 'v.', '想；认为', 'I think it will be sunny tomorrow.', '我觉得明天会是晴天。'],
+  ['understand', '/ˌʌn.dəˈstænd/', 'v.', '理解；懂', "I don't understand this question.", '我不懂这道题。'],
+  ['remember', '/rɪˈmem.bər/', 'v.', '记得；记住', 'Remember to bring your book.', '记得带书。'],
+  ['forget', '/fəˈɡet/', 'v.', '忘记', "Don't forget your homework.", '别忘了你的作业。'],
+  ['want', '/wɒnt/', 'v.', '想要', 'I want a glass of water.', '我想要一杯水。'],
+  ['need', '/niːd/', 'v.', '需要', 'I need a new pencil.', '我需要一支新铅笔。'],
+  ['like', '/laɪk/', 'v.', '喜欢', 'I like playing football.', '我喜欢踢足球。'],
+  ['prefer', '/prɪˈfɜːr/', 'v.', '更喜欢', 'I prefer tea to coffee.', '比起咖啡我更喜欢茶。'],
+  ['hope', '/həʊp/', 'v.', '希望', 'I hope you feel better soon.', '希望你早日康复。'],
+  ['wish', '/wɪʃ/', 'v.', '希望；祝愿', 'I wish you a happy birthday.', '祝你生日快乐。'],
+  ['try', '/traɪ/', 'v.', '尝试；努力', "Try this cake. It's delicious!", '尝尝这个蛋糕，很好吃！'],
+  ['start', '/stɑːt/', 'v.', '开始；启动', 'The lesson starts at nine.', '课九点开始。'],
+  ['begin', '/bɪˈɡɪn/', 'v.', '开始', "Let's begin the game.", '我们开始游戏吧。'],
+  ['finish', '/ˈfɪn.ɪʃ/', 'v.', '完成；结束', 'Have you finished your homework?', '你做完作业了吗？'],
+  ['stop', '/stɒp/', 'v.', '停止', 'Stop talking, please.', '请别说话了。'],
+  ['shut', '/ʃʌt/', 'v.', '关上', 'Shut the door, please.', '请把门关上。'],
+  ['close', '/kləʊz/', 'v.', '关闭', 'Close your eyes.', '闭上眼睛。'],
+  ['help', '/help/', 'v.', '帮助', 'Can you help me?', '你能帮我吗？'],
+  ['find', '/faɪnd/', 'v.', '找到；发现', "I can't find my keys.", '我找不到钥匙了。'],
+  ['look for', '/ˈlʊk ˌfɔːr/', 'phr.', '寻找', 'I am looking for my cat.', '我在找我的猫。'],
+  ['look after', '/ˌlʊk ˈɑːf.tər/', 'phr.', '照看', 'Can you look after my dog this weekend?', '这个周末你能帮我照顾狗吗？'],
+  ['bring', '/brɪŋ/', 'v.', '带来', 'Bring your swimsuit tomorrow.', '明天带上泳衣。'],
+  ['carry', '/ˈkær.i/', 'v.', '携带；搬运', 'Can you carry this box for me?', '你能帮我搬这个箱子吗？'],
+  ['hold', '/həʊld/', 'v.', '拿着；抱着', 'Hold my hand when we cross the road.', '过马路时拉着我的手。'],
+  ['keep', '/kiːp/', 'v.', '保持；保留', 'You can keep the book.', '这本书你可以留着。'],
+  ['stay', '/steɪ/', 'v.', '停留；待；住', 'We stayed at home all day.', '我们一整天都待在家里。'],
+  ['wait', '/weɪt/', 'v.', '等待', 'Wait for me!', '等等我！'],
+  ['meet', '/miːt/', 'v.', '遇见；见面', "Let's meet at the station.", '我们在车站见面吧。'],
+  ['join', '/dʒɔɪn/', 'v.', '加入；参加', 'Do you want to join our team?', '你想加入我们队吗？'],
+  ['invite', '/ɪnˈvaɪt/', 'v.', '邀请', 'I invited all my friends to the party.', '我邀请了所有朋友来聚会。'],
+  ['agree', '/əˈɡriː/', 'v.', '同意', 'I agree with you.', '我同意你的看法。'],
+  ['decide', '/dɪˈsaɪd/', 'v.', '决定', 'We decided to go to the beach.', '我们决定去海边。'],
+  ['choose', '/tʃuːz/', 'v.', '选择', 'Choose a book you like.', '选一本你喜欢的书。'],
+  ['become', '/bɪˈkʌm/', 'v.', '成为；变得', 'She became a famous singer.', '她成了一位著名歌手。'],
+  ['happen', '/ˈhæp.ən/', 'v.', '发生', 'What happened to your arm?', '你的胳膊怎么了？'],
+  ['believe', '/bɪˈliːv/', 'v.', '相信', "I can't believe it!", '我简直不敢相信！'],
+  ['explain', '/ɪkˈspleɪn/', 'v.', '解释', 'Can you explain this word?', '你能解释一下这个词吗？'],
+  ['describe', '/dɪˈskraɪb/', 'v.', '描述', 'Describe your best friend.', '描述一下你最好的朋友。'],
+  ['discuss', '/dɪˈskʌs/', 'v.', '讨论', 'We discussed the story in class.', '我们在课上讨论了这个故事。'],
+  ['mean', '/miːn/', 'v.', '意思是', 'What does this word mean?', '这个词是什么意思？'],
+  ['point', '/pɔɪnt/', 'v.', '指；分数', "Don't point at people.", '不要用手指着别人。'],
+  ['borrow', '/ˈbɒr.əʊ/', 'v.', '借（入）', 'Can I borrow your pen?', '我能借用你的笔吗？'],
+  ['lend', '/lend/', 'v.', '借（出）', 'Can you lend me some money?', '你能借我点钱吗？'],
+  ['share', '/ʃeər/', 'v.', '分享；共用', "Let's share the pizza.", '我们分着吃比萨吧。'],
+  ['sleep', '/sliːp/', 'v.', '睡觉', 'I sleep for nine hours every night.', '我每晚睡九个小时。'],
+  ['wake up', '/ˌweɪk ˈʌp/', 'phr.', '醒来', 'I wake up at seven.', '我七点醒来。'],
+  ['get up', '/ˌɡet ˈʌp/', 'phr.', '起床', 'What time do you get up?', '你几点起床？'],
+  ['go to bed', '/ˌɡəʊ tə ˈbed/', 'phr.', '上床睡觉', 'I go to bed at half past nine.', '我九点半上床睡觉。'],
+  ['brush', '/brʌʃ/', 'v.', '刷', 'Brush your teeth before bed.', '睡前刷牙。'],
+  ['look forward to', '/ˌlʊk ˈfɔː.wəd tə/', 'phr.', '期待；盼望', 'I am looking forward to the holiday.', '我很期待假期。'],
+  ['fix', '/fɪks/', 'v.', '修理；固定', 'Dad fixed my bike.', '爸爸修好了我的自行车。'],
+  ['repair', '/rɪˈpeər/', 'v.', '修理', 'They are repairing the road.', '他们在修路。'],
+  ['build', '/bɪld/', 'v.', '建造', 'We built a sandcastle on the beach.', '我们在海滩上堆了个沙堡。'],
+  ['cut', '/kʌt/', 'v.', '切；剪', 'Cut the cake into eight pieces.', '把蛋糕切成八块。'],
+  ['fill', '/fɪl/', 'v.', '装满；填满', 'Fill the glass with water.', '把杯子倒满水。'],
+  ['fill in', '/ˌfɪl ˈɪn/', 'phr.', '填写', 'Fill in the form, please.', '请填写这张表。'],
+  ['fall', '/fɔːl/', 'v.', '落下；摔倒', 'Be careful or you will fall.', '小心别摔倒了。'],
+  ['drop', '/drɒp/', 'v.', '掉下；放下', 'I dropped my phone.', '我把手机掉了。'],
+  ['pick up', '/ˌpɪk ˈʌp/', 'phr.', '捡起；接（人）', 'Please pick up your clothes.', '请把你的衣服捡起来。'],
+  ['pick', '/pɪk/', 'v.', '采摘；挑选', 'We picked strawberries on the farm.', '我们在农场摘了草莓。'],
+  ['push', '/pʊʃ/', 'v.', '推', 'Push the door to open it.', '推门就能打开。'],
+  ['pull', '/pʊl/', 'v.', '拉', 'Pull the rope!', '拉绳子！'],
+  ['climb', '/klaɪm/', 'v.', '爬；攀登', 'The cat climbed the tree.', '猫爬上了树。'],
+  ['hide', '/haɪd/', 'v.', '躲藏；隐藏', 'The children hid behind the door.', '孩子们躲在门后。'],
+  ['shout', '/ʃaʊt/', 'v.', '喊叫', "Don't shout. I can hear you.", '别喊，我听得见。'],
+  ['whisper', '/ˈwɪs.pər/', 'v.', '低声说', 'She whispered a secret to me.', '她悄悄告诉我一个秘密。'],
+  ['enter', '/ˈen.tər/', 'v.', '进入；参加', 'Please knock before you enter.', '进来之前请先敲门。'],
+  ['follow', '/ˈfɒl.əʊ/', 'v.', '跟随；遵循', 'Follow me, please.', '请跟我来。'],
+  ['guess', '/ɡes/', 'v.', '猜', 'Guess what I have in my hand.', '猜猜我手里有什么。'],
+  ['imagine', '/ɪˈmædʒ.ɪn/', 'v.', '想象', 'Imagine you can fly.', '想象一下你会飞。'],
+  ['plan', '/plæn/', 'v.', '计划', 'We are planning a trip to Japan.', '我们在计划去日本旅行。'],
+  ['prepare', '/prɪˈpeər/', 'v.', '准备', 'Mum is preparing dinner.', '妈妈在准备晚饭。'],
+  ['check', '/tʃek/', 'v.', '检查；核对', 'Check your answers before you finish.', '结束前检查一下答案。'],
+  ['compare', '/kəmˈpeər/', 'v.', '比较', 'Compare the two pictures.', '比较这两幅图。'],
+  ['complete', '/kəmˈpliːt/', 'v.', '完成；填完', 'Complete the sentences.', '把句子补充完整。'],
+  ['continue', '/kənˈtɪn.juː/', 'v.', '继续', 'Please continue reading.', '请继续读。'],
+  ['copy', '/ˈkɒp.i/', 'v.', '抄写；复制', 'Copy the words into your notebook.', '把单词抄到笔记本上。'],
+  ['create', '/kriˈeɪt/', 'v.', '创造；创作', 'We created a poster for the school.', '我们为学校做了一张海报。'],
+  ['design', '/dɪˈzaɪn/', 'v.', '设计', 'She designed her own dress.', '她自己设计了裙子。'],
+  ['die', '/daɪ/', 'v.', '死', 'The plant died because it had no water.', '这株植物因为缺水死了。'],
+  ['dream', '/driːm/', 'v.', '做梦；梦想', 'I dream of being a pilot.', '我梦想成为飞行员。'],
+  ['enjoy', '/ɪnˈdʒɔɪ/', 'v.', '享受；喜欢', 'Did you enjoy the film?', '你喜欢这部电影吗？'],
+  ['expect', '/ɪkˈspekt/', 'v.', '期待；预料', 'I expect it will rain tomorrow.', '我预计明天会下雨。'],
+  ['fight', '/faɪt/', 'v.', '打架；战斗', 'The two dogs are fighting.', '两只狗在打架。'],
+  ['grow up', '/ˌɡrəʊ ˈʌp/', 'phr.', '长大', 'What do you want to be when you grow up?', '你长大后想做什么？'],
+  ['hit', '/hɪt/', 'v.', '打；击中', 'He hit the ball very hard.', '他用力击球。'],
+  ['improve', '/ɪmˈpruːv/', 'v.', '提高；改进', 'I want to improve my English.', '我想提高我的英语。'],
+  ['include', '/ɪnˈkluːd/', 'v.', '包括', 'The price includes breakfast.', '价格包含早餐。'],
+  ['knock', '/nɒk/', 'v.', '敲（门）', 'Someone is knocking at the door.', '有人在敲门。'],
+  ['lie', '/laɪ/', 'v.', '躺；说谎', 'The cat is lying in the sun.', '猫躺在阳光下。'],
+  ['let', '/let/', 'v.', '让；允许', 'Let me help you.', '让我来帮你。'],
+  ['lock', '/lɒk/', 'v.', '锁上', "Don't forget to lock the door.", '别忘了锁门。'],
+  ['mind', '/maɪnd/', 'v.', '介意', 'Do you mind if I open the window?', '你介意我开窗吗？'],
+  ['miss', '/mɪs/', 'v.', '错过；想念', 'Hurry or we will miss the bus.', '快点，不然我们要错过公交车了。'],
+  ['move', '/muːv/', 'v.', '移动；搬家', 'Can you move your chair a little?', '你能把椅子挪一下吗？'],
+  ['offer', '/ˈɒf.ər/', 'v.', '提供；主动提出', 'She offered me a drink.', '她请我喝饮料。'],
+  ['own', '/əʊn/', 'v.', '拥有；自己的', 'My uncle owns a shop.', '我叔叔开了一家店。'],
+  ['pack', '/pæk/', 'v.', '收拾（行李）', 'Have you packed your suitcase?', '你收拾好行李箱了吗？'],
+  ['pour', '/pɔːr/', 'v.', '倒；灌', 'Pour the milk into the bowl.', '把牛奶倒进碗里。'],
+  ['promise', '/ˈprɒm.ɪs/', 'v.', '承诺；答应', 'I promise I will be good.', '我保证会乖乖的。'],
+  ['put away', '/ˌpʊt əˈweɪ/', 'phr.', '收起来；放好', 'Put away your toys.', '把你的玩具收起来。'],
+  ['reach', '/riːtʃ/', 'v.', '到达；够到', "I can't reach the top shelf.", '我够不到最上面的架子。'],
+  ['repeat', '/rɪˈpiːt/', 'v.', '重复', 'Can you repeat that, please?', '请你再说一遍好吗？'],
+  ['rent', '/rent/', 'v.', '租用', 'We rented a car on holiday.', '我们度假时租了一辆车。'],
+  ['rescue', '/ˈres.kjuː/', 'v.', '营救', 'The firefighters rescued the cat.', '消防员救出了那只猫。'],
+  ['shake', '/ʃeɪk/', 'v.', '摇动；握（手）', 'Shake the bottle before you open it.', '打开前先摇一摇瓶子。'],
+  ['smell', '/smel/', 'v.', '闻；闻起来', 'The flowers smell lovely.', '这些花闻起来很香。'],
+  ['solve', '/sɒlv/', 'v.', '解决；解答', 'Can you solve this puzzle?', '你能解开这个谜题吗？'],
+  ['steal', '/stiːl/', 'v.', '偷', 'Someone stole my bike.', '有人偷了我的自行车。'],
+  ['suggest', '/səˈdʒest/', 'v.', '建议', 'I suggest we go by train.', '我建议我们坐火车去。'],
+  ['support', '/səˈpɔːt/', 'v.', '支持', 'Which football team do you support?', '你支持哪支足球队？'],
+  ['surprise', '/səˈpraɪz/', 'v.', '使惊讶；惊喜', "Let's surprise Mum with a cake.", '我们用蛋糕给妈妈一个惊喜吧。'],
+  ['take part', '/ˌteɪk ˈpɑːt/', 'phr.', '参加', 'I took part in the school play.', '我参加了学校的演出。'],
+  ['thank', '/θæŋk/', 'v.', '感谢', 'I want to thank you for your help.', '我想感谢你的帮助。'],
+  ['touch', '/tʌtʃ/', 'v.', '触摸', "Please don't touch the paintings.", '请不要触摸画作。'],
+  ['use', '/juːz/', 'v.', '使用', 'Can I use your phone?', '我能用你的手机吗？'],
+  ['wonder', '/ˈwʌn.dər/', 'v.', '想知道', 'I wonder what time it is.', '我想知道现在几点了。'],
+  ['act', '/ækt/', 'v.', '表演；行动', 'She acted in the school play.', '她在学校的戏里演出。'],
+  ['allow', '/əˈlaʊ/', 'v.', '允许', 'Dogs are not allowed in the shop.', '狗不允许进入商店。'],
+  ['appear', '/əˈpɪər/', 'v.', '出现', 'A rainbow appeared in the sky.', '天空中出现了一道彩虹。'],
+  ['arrange', '/əˈreɪndʒ/', 'v.', '安排；整理', 'We arranged to meet at six.', '我们约好六点见面。'],
+  ['avoid', '/əˈvɔɪd/', 'v.', '避免', 'Try to avoid eating too many sweets.', '尽量避免吃太多糖。'],
+  ['belong', '/bɪˈlɒŋ/', 'v.', '属于', 'This book belongs to me.', '这本书是我的。'],
+  ['bite', '/baɪt/', 'v.', '咬', "Don't worry, the dog won't bite.", '别担心，这只狗不咬人。'],
+  ['blow', '/bləʊ/', 'v.', '吹', 'Blow out the candles!', '吹蜡烛吧！'],
+  ['burn', '/bɜːn/', 'v.', '燃烧；烧伤', "Don't burn your hand.", '别烫着手。'],
+  ['cheer', '/tʃɪər/', 'v.', '欢呼；加油', 'The fans cheered for their team.', '球迷们为自己的球队欢呼。'],
+  ['come back', '/ˌkʌm ˈbæk/', 'phr.', '回来', 'Come back soon!', '早点回来！'],
+  ['come in', '/ˌkʌm ˈɪn/', 'phr.', '进来', 'Come in and sit down.', '进来坐吧。'],
+  ['cover', '/ˈkʌv.ər/', 'v.', '覆盖；遮盖', 'Snow covered the ground.', '雪覆盖了地面。'],
+  ['cycle', '/ˈsaɪ.kəl/', 'v.', '骑自行车', 'I cycle to school every day.', '我每天骑车上学。'],
+  ['disappear', '/ˌdɪs.əˈpɪər/', 'v.', '消失', 'The sun disappeared behind the clouds.', '太阳消失在云后。'],
+  ['end', '/end/', 'v.', '结束；末尾', 'The film ends at nine.', '电影九点结束。'],
+  ['explore', '/ɪkˈsplɔːr/', 'v.', '探索；探险', "Let's explore the island.", '我们去探索这个岛吧。'],
+  ['find out', '/ˌfaɪnd ˈaʊt/', 'phr.', '查明；发现', 'I want to find out more about dinosaurs.', '我想了解更多关于恐龙的事。'],
+  ['fold', '/fəʊld/', 'v.', '折叠', 'Fold the paper in half.', '把纸对折。'],
+  ['get dressed', '/ˌɡet ˈdrest/', 'phr.', '穿好衣服', 'Get dressed quickly. We are late.', '快穿好衣服，我们要迟到了。'],
+  ['give back', '/ˌɡɪv ˈbæk/', 'phr.', '归还', 'Please give back my pen.', '请把笔还给我。'],
+  ['go out', '/ˌɡəʊ ˈaʊt/', 'phr.', '出去', "Let's go out for dinner.", '我们出去吃晚饭吧。'],
+  ['hang', '/hæŋ/', 'v.', '挂', 'Hang your coat on the hook.', '把外套挂在钩子上。'],
+  ['hurry', '/ˈhʌr.i/', 'v.', '赶快；匆忙', "Hurry! The bus is coming.", '快点！公交车来了。'],
+  ['hurry up', '/ˌhʌr.i ˈʌp/', 'phr.', '快点', 'Hurry up or we will be late!', '快点，不然要迟到了！'],
+  ['introduce', '/ˌɪn.trəˈdʒuːs/', 'v.', '介绍', 'Let me introduce my friend Tom.', '我来介绍一下我的朋友 Tom。'],
+  ['look like', '/ˈlʊk ˌlaɪk/', 'phr.', '看起来像', 'You look like your mother.', '你长得像你妈妈。'],
+  ['look up', '/ˌlʊk ˈʌp/', 'phr.', '查阅；向上看', 'Look up the word in a dictionary.', '在词典里查这个词。'],
+  ['marry', '/ˈmær.i/', 'v.', '和……结婚', 'She married a doctor.', '她嫁给了一位医生。'],
+  ['measure', '/ˈmeʒ.ər/', 'v.', '测量', 'Measure the table with a ruler.', '用尺子量一下桌子。'],
+  ['mend', '/mend/', 'v.', '修补', 'Grandma mended my jeans.', '奶奶给我补好了牛仔裤。'],
+  ['mix', '/mɪks/', 'v.', '混合', 'Mix the eggs and the sugar.', '把鸡蛋和糖混在一起。'],
+  ['notice', '/ˈnəʊ.tɪs/', 'v.', '注意到', 'Did you notice his new haircut?', '你注意到他的新发型了吗？'],
+  ['press', '/pres/', 'v.', '按；压', 'Press the red button.', '按红色按钮。'],
+  ['realise', '/ˈrɪə.laɪz/', 'v.', '意识到', 'I realised I had left my bag at home.', '我意识到我把包落在家里了。'],
+  ['remove', '/rɪˈmuːv/', 'v.', '移除；拿走', 'Please remove your shoes.', '请脱鞋。'],
+  ['sail', '/seɪl/', 'v.', '航行', 'We sailed to the island.', '我们乘船去了岛上。'],
+  ['seem', '/siːm/', 'v.', '似乎；看起来', 'She seems happy today.', '她今天看起来很高兴。'],
+  ['shine', '/ʃaɪn/', 'v.', '照耀；发光', 'The sun is shining.', '太阳在照耀着。'],
+  ['ski', '/skiː/', 'v.', '滑雪', 'Can you ski?', '你会滑雪吗？'],
+  ['stick', '/stɪk/', 'v.', '粘贴；棍子', 'Stick the stamp on the envelope.', '把邮票贴在信封上。'],
+  ['take care of', '/ˌteɪk ˈkeər əv/', 'phr.', '照顾', 'I take care of my little brother.', '我照顾我的弟弟。'],
+  ['throw away', '/ˌθrəʊ əˈweɪ/', 'phr.', '扔掉', "Don't throw away the bottle. Recycle it.", '别把瓶子扔掉，回收它。'],
+  ['type', '/taɪp/', 'v.', '打字；类型', 'I can type very fast.', '我打字很快。'],
+  ['welcome', '/ˈwel.kəm/', 'v.', '欢迎', 'Welcome to our school!', '欢迎来到我们学校！'],
+  ['work out', '/ˌwɜːk ˈaʊt/', 'phr.', '算出；想出；锻炼', 'Can you work out the answer?', '你能算出答案吗？'],
+  ['write down', '/ˌraɪt ˈdaʊn/', 'phr.', '写下', 'Write down the new words.', '把生词写下来。'],
+  ['give up', '/ˌɡɪv ˈʌp/', 'phr.', '放弃', "Don't give up!", '别放弃！'],
+  ['set off', '/ˌset ˈɒf/', 'phr.', '出发', 'We set off early in the morning.', '我们一大早就出发了。'],
+  ['sit down', '/ˌsɪt ˈdaʊn/', 'phr.', '坐下', 'Please sit down.', '请坐下。'],
+  ['stand up', '/ˌstænd ˈʌp/', 'phr.', '站起来', 'Stand up when the teacher comes in.', '老师进来时要起立。'],
+  ['cancel', '/ˈkæn.səl/', 'v.', '取消', 'The match was cancelled because of the rain.', '比赛因下雨取消了。'],
+  ['apologise', '/əˈpɒl.ə.dʒaɪz/', 'v.', '道歉', 'He apologised for being late.', '他为迟到道了歉。'],
+  ['complain', '/kəmˈpleɪn/', 'v.', '抱怨；投诉', 'Stop complaining and eat your dinner.', '别抱怨了，吃你的晚饭吧。'],
+  ['depend', '/dɪˈpend/', 'v.', '取决于；依靠', 'It depends on the weather.', '这要看天气。'],
+  ['whistle', '/ˈwɪs.əl/', 'v.', '吹口哨', 'He whistled a happy song.', '他用口哨吹了一首欢快的歌。'],
+  ['lead', '/liːd/', 'v.', '带领；领先', 'The teacher led us to the museum.', '老师带我们去了博物馆。'],
+];
+
+// ---- src/words/describe.js ----
+// 常用形容词与副词 · 目标 150 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_DESCRIBE = [
+  ['big', '/bɪɡ/', 'adj.', '大的', 'They live in a big house.', '他们住在一栋大房子里。'],
+  ['small', '/smɔːl/', 'adj.', '小的', 'My room is very small.', '我的房间很小。'],
+  ['large', '/lɑːdʒ/', 'adj.', '大的；大号的', 'Can I have a large cola?', '我能要一杯大杯可乐吗？'],
+  ['little', '/ˈlɪt.əl/', 'adj.', '小的；少的', 'I have a little sister.', '我有一个妹妹。'],
+  ['long', '/lɒŋ/', 'adj.', '长的', 'She has long hair.', '她留着长发。'],
+  ['short', '/ʃɔːt/', 'adj.', '短的；矮的', 'My brother is short.', '我弟弟个子矮。'],
+  ['tall', '/tɔːl/', 'adj.', '高的（身材）', 'He is very tall.', '他个子很高。'],
+  ['high', '/haɪ/', 'adj.', '高的', 'The mountain is very high.', '这座山很高。'],
+  ['low', '/ləʊ/', 'adj.', '低的', 'The table is too low.', '这张桌子太矮了。'],
+  ['wide', '/waɪd/', 'adj.', '宽的', 'The river is very wide here.', '这里的河面很宽。'],
+  ['narrow', '/ˈnær.əʊ/', 'adj.', '窄的', 'The street is very narrow.', '这条街很窄。'],
+  ['thick', '/θɪk/', 'adj.', '厚的；浓的', 'This book is very thick.', '这本书很厚。'],
+  ['thin', '/θɪn/', 'adj.', '薄的；瘦的', 'The cat is very thin.', '这只猫很瘦。'],
+  ['fat', '/fæt/', 'adj.', '胖的', 'Our dog is getting fat.', '我们的狗变胖了。'],
+  ['heavy', '/ˈhev.i/', 'adj.', '重的', 'This box is too heavy.', '这个箱子太重了。'],
+  ['old', '/əʊld/', 'adj.', '老的；旧的', 'How old are you?', '你多大了？'],
+  ['new', '/njuː/', 'adj.', '新的', 'I have a new bike.', '我有一辆新自行车。'],
+  ['young', '/jʌŋ/', 'adj.', '年轻的；幼小的', 'My mum looks young.', '我妈妈看起来很年轻。'],
+  ['modern', '/ˈmɒd.ən/', 'adj.', '现代的', 'They live in a modern flat.', '他们住在一套现代化的公寓里。'],
+  ['ancient', '/ˈeɪn.ʃənt/', 'adj.', '古老的', 'We visited an ancient city.', '我们参观了一座古城。'],
+  ['good', '/ɡʊd/', 'adj.', '好的', 'This is a good book.', '这是一本好书。'],
+  ['bad', '/bæd/', 'adj.', '坏的；差的', 'Eating too much sugar is bad for you.', '吃太多糖对你不好。'],
+  ['great', '/ɡreɪt/', 'adj.', '很棒的；伟大的', 'We had a great time.', '我们玩得很开心。'],
+  ['nice', '/naɪs/', 'adj.', '好的；令人愉快的', 'Have a nice day!', '祝你今天愉快！'],
+  ['fine', '/faɪn/', 'adj.', '好的；晴朗的', "I'm fine, thank you.", '我很好，谢谢。'],
+  ['lovely', '/ˈlʌv.li/', 'adj.', '可爱的；美好的', 'What a lovely garden!', '多么漂亮的花园啊！'],
+  ['beautiful', '/ˈbjuː.tɪ.fəl/', 'adj.', '美丽的', 'The beach is beautiful.', '这片海滩很美。'],
+  ['pretty', '/ˈprɪt.i/', 'adj.', '漂亮的；相当', 'She is wearing a pretty dress.', '她穿着一条漂亮的裙子。'],
+  ['ugly', '/ˈʌɡ.li/', 'adj.', '丑的', 'The monster in the film was ugly.', '电影里的怪物很丑。'],
+  ['handsome', '/ˈhæn.səm/', 'adj.', '英俊的', 'The prince was tall and handsome.', '王子又高又帅。'],
+  ['cute', '/kjuːt/', 'adj.', '可爱的', 'Look at that cute puppy!', '看那只可爱的小狗！'],
+  ['wonderful', '/ˈwʌn.də.fəl/', 'adj.', '极好的；精彩的', 'We had a wonderful holiday.', '我们度过了一个美好的假期。'],
+  ['amazing', '/əˈmeɪ.zɪŋ/', 'adj.', '令人惊叹的', 'The view from the top is amazing.', '从顶上看风景太棒了。'],
+  ['fantastic', '/fænˈtæs.tɪk/', 'adj.', '极好的', 'The concert was fantastic!', '音乐会太棒了！'],
+  ['excellent', '/ˈek.səl.ənt/', 'adj.', '优秀的；极好的', 'Excellent work, everyone!', '大家做得非常好！'],
+  ['perfect', '/ˈpɜː.fɪkt/', 'adj.', '完美的', 'The weather is perfect for a picnic.', '这天气很适合野餐。'],
+  ['terrible', '/ˈter.ə.bəl/', 'adj.', '糟糕的；可怕的', 'I had a terrible dream.', '我做了一个可怕的梦。'],
+  ['awful', '/ˈɔː.fəl/', 'adj.', '很糟的', 'The food was awful.', '饭菜糟透了。'],
+  ['horrible', '/ˈhɒr.ə.bəl/', 'adj.', '可怕的；令人讨厌的', 'What a horrible smell!', '多难闻的气味啊！'],
+  ['easy', '/ˈiː.zi/', 'adj.', '容易的', 'The test was easy.', '这次测验很简单。'],
+  ['difficult', '/ˈdɪf.ɪ.kəlt/', 'adj.', '困难的', 'This question is difficult.', '这道题很难。'],
+  ['hard', '/hɑːd/', 'adj.', '硬的；难的；努力地', 'This bread is very hard.', '这面包很硬。'],
+  ['simple', '/ˈsɪm.pəl/', 'adj.', '简单的', 'The rules of the game are simple.', '这个游戏的规则很简单。'],
+  ['important', '/ɪmˈpɔː.tənt/', 'adj.', '重要的', 'It is important to drink water.', '喝水很重要。'],
+  ['famous', '/ˈfeɪ.məs/', 'adj.', '著名的', 'He is a famous footballer.', '他是一名著名的足球运动员。'],
+  ['popular', '/ˈpɒp.jə.lər/', 'adj.', '受欢迎的', 'This game is very popular.', '这个游戏很受欢迎。'],
+  ['special', '/ˈspeʃ.əl/', 'adj.', '特别的', 'Today is a special day.', '今天是个特别的日子。'],
+  ['different', '/ˈdɪf.ər.ənt/', 'adj.', '不同的', 'My sister and I are very different.', '我和姐姐很不一样。'],
+  ['same', '/seɪm/', 'adj.', '相同的', 'We are in the same class.', '我们在同一个班。'],
+  ['similar', '/ˈsɪm.ɪ.lər/', 'adj.', '相似的', 'Our bags are similar.', '我们的包很像。'],
+  ['strange', '/streɪndʒ/', 'adj.', '奇怪的；陌生的', 'I heard a strange noise.', '我听到一个奇怪的声音。'],
+  ['normal', '/ˈnɔː.məl/', 'adj.', '正常的；普通的', 'It was a normal school day.', '那是普通的上学日。'],
+  ['usual', '/ˈjuː.ʒu.əl/', 'adj.', '通常的', 'I got up at the usual time.', '我在平常的时间起床。'],
+  ['real', '/rɪəl/', 'adj.', '真的；真实的', 'Is that a real diamond?', '那是真钻石吗？'],
+  ['true', '/truː/', 'adj.', '真实的；正确的', 'Is it true that you can speak French?', '你会说法语是真的吗？'],
+  ['false', '/fɔːls/', 'adj.', '错误的；假的', 'Read the sentences and write true or false.', '读句子，判断正误。'],
+  ['possible', '/ˈpɒs.ə.bəl/', 'adj.', '可能的', 'Is it possible to walk there?', '能走着去那里吗？'],
+  ['impossible', '/ɪmˈpɒs.ə.bəl/', 'adj.', '不可能的', 'It is impossible to finish this today.', '今天不可能做完这个。'],
+  ['necessary', '/ˈnes.ə.ser.i/', 'adj.', '必要的', 'Is it necessary to bring food?', '有必要带吃的吗？'],
+  ['safe', '/seɪf/', 'adj.', '安全的', 'Is it safe to swim here?', '在这里游泳安全吗？'],
+  ['dangerous', '/ˈdeɪn.dʒər.əs/', 'adj.', '危险的', 'It is dangerous to play near the road.', '在马路边玩很危险。'],
+  ['quiet', '/ˈkwaɪ.ət/', 'adj.', '安静的', 'Please be quiet in the library.', '在图书馆请保持安静。'],
+  ['noisy', '/ˈnɔɪ.zi/', 'adj.', '吵闹的', 'The classroom is very noisy.', '教室里很吵。'],
+  ['loud', '/laʊd/', 'adj.', '大声的；响亮的', 'The music is too loud.', '音乐太吵了。'],
+  ['busy', '/ˈbɪz.i/', 'adj.', '忙的；繁忙的', 'I am busy this weekend.', '我这周末很忙。'],
+  ['empty', '/ˈemp.ti/', 'adj.', '空的', 'The bottle is empty.', '瓶子是空的。'],
+  ['full', '/fʊl/', 'adj.', '满的；饱的', 'The bus is full.', '公交车满了。'],
+  ['dirty', '/ˈdɜː.ti/', 'adj.', '脏的', 'Your hands are dirty.', '你的手很脏。'],
+  ['messy', '/ˈmes.i/', 'adj.', '凌乱的', 'My room is messy.', '我的房间很乱。'],
+  ['fast', '/fɑːst/', 'adj.', '快的；快地', 'Cheetahs are very fast.', '猎豹跑得非常快。'],
+  ['quick', '/kwɪk/', 'adj.', '快的；迅速的', 'Can I ask a quick question?', '我能快速问个问题吗？'],
+  ['slow', '/sləʊ/', 'adj.', '慢的', 'The old bus is very slow.', '这辆旧公交车很慢。'],
+  ['strong', '/strɒŋ/', 'adj.', '强壮的；坚固的', 'My dad is very strong.', '我爸爸很强壮。'],
+  ['weak', '/wiːk/', 'adj.', '虚弱的；弱的', 'I felt weak after being ill.', '病后我感到很虚弱。'],
+  ['soft', '/sɒft/', 'adj.', '柔软的', 'The kitten is very soft.', '这只小猫很软。'],
+  ['round', '/raʊnd/', 'adj.', '圆的', 'The table is round.', '这张桌子是圆的。'],
+  ['sharp', '/ʃɑːp/', 'adj.', '锋利的；尖的', 'Be careful. The knife is sharp.', '小心，刀很锋利。'],
+  ['bright', '/braɪt/', 'adj.', '明亮的；聪明的', 'The room is bright and sunny.', '房间明亮又有阳光。'],
+  ['dark', '/dɑːk/', 'adj.', '黑暗的；深色的', 'It gets dark early in winter.', '冬天天黑得早。'],
+  ['colourful', '/ˈkʌl.ə.fəl/', 'adj.', '色彩鲜艳的', 'She wears colourful clothes.', '她穿着色彩鲜艳的衣服。'],
+  ['black', '/blæk/', 'adj.', '黑色的', 'I have a black cat.', '我有一只黑猫。'],
+  ['white', '/waɪt/', 'adj.', '白色的', 'Snow is white.', '雪是白色的。'],
+  ['red', '/red/', 'adj.', '红色的', 'She has a red bag.', '她有一个红色的包。'],
+  ['blue', '/bluː/', 'adj.', '蓝色的', 'The sky is blue.', '天空是蓝色的。'],
+  ['green', '/ɡriːn/', 'adj.', '绿色的', 'The grass is green.', '草是绿色的。'],
+  ['yellow', '/ˈjel.əʊ/', 'adj.', '黄色的', 'Bananas are yellow.', '香蕉是黄色的。'],
+  ['brown', '/braʊn/', 'adj.', '棕色的', 'He has brown eyes.', '他有一双棕色的眼睛。'],
+  ['grey', '/ɡreɪ/', 'adj.', '灰色的', 'The sky is grey today.', '今天天空灰蒙蒙的。'],
+  ['pink', '/pɪŋk/', 'adj.', '粉红色的', 'Her room is pink.', '她的房间是粉色的。'],
+  ['purple', '/ˈpɜː.pəl/', 'adj.', '紫色的', 'Purple is my favourite colour.', '紫色是我最喜欢的颜色。'],
+  ['gold', '/ɡəʊld/', 'adj.', '金色的；金的', 'She won a gold medal.', '她赢得了一枚金牌。'],
+  ['silver', '/ˈsɪl.vər/', 'adj.', '银色的；银的', 'I have a silver necklace.', '我有一条银项链。'],
+  ['comfortable', '/ˈkʌmf.tə.bəl/', 'adj.', '舒适的', 'This sofa is very comfortable.', '这张沙发很舒服。'],
+  ['boring', '/ˈbɔː.rɪŋ/', 'adj.', '无聊的；乏味的', 'The film was boring.', '这部电影很无聊。'],
+  ['exciting', '/ɪkˈsaɪ.tɪŋ/', 'adj.', '令人兴奋的', 'The match was very exciting.', '这场比赛非常激动人心。'],
+  ['interesting', '/ˈɪn.trə.stɪŋ/', 'adj.', '有趣的', 'This is an interesting book.', '这是一本有趣的书。'],
+  ['ready', '/ˈred.i/', 'adj.', '准备好的', 'Are you ready to go?', '你准备好出发了吗？'],
+  ['broken', '/ˈbrəʊ.kən/', 'adj.', '坏了的；破碎的', 'My watch is broken.', '我的手表坏了。'],
+  ['alive', '/əˈlaɪv/', 'adj.', '活着的', 'The fish is still alive.', '这条鱼还活着。'],
+  ['dead', '/ded/', 'adj.', '死的', 'The flowers are dead.', '花都枯死了。'],
+  ['asleep', '/əˈsliːp/', 'adj.', '睡着的', 'The baby is asleep.', '宝宝睡着了。'],
+  ['awake', '/əˈweɪk/', 'adj.', '醒着的', 'Are you still awake?', '你还醒着吗？'],
+  ['sure', '/ʃɔːr/', 'adj.', '确定的；当然', 'Are you sure?', '你确定吗？'],
+  ['clear', '/klɪər/', 'adj.', '清楚的；晴朗的', 'The instructions are clear.', '说明很清楚。'],
+  ['wrong', '/rɒŋ/', 'adj.', '错误的', 'Sorry, that answer is wrong.', '对不起，那个答案是错的。'],
+  ['main', '/meɪn/', 'adj.', '主要的', 'The main road is very busy.', '主干道很繁忙。'],
+  ['whole', '/həʊl/', 'adj.', '整个的；全部的', 'I ate the whole pizza!', '我吃掉了一整个比萨！'],
+  ['public', '/ˈpʌb.lɪk/', 'adj.', '公共的', 'There is a public library in our town.', '我们镇上有一个公共图书馆。'],
+  ['international', '/ˌɪn.təˈnæʃ.ən.əl/', 'adj.', '国际的', 'She goes to an international school.', '她上一所国际学校。'],
+  ['traditional', '/trəˈdɪʃ.ən.əl/', 'adj.', '传统的', 'Dumplings are a traditional Chinese food.', '饺子是传统的中国食物。'],
+  ['very', '/ˈver.i/', 'adv.', '非常', 'It is very cold today.', '今天非常冷。'],
+  ['really', '/ˈrɪə.li/', 'adv.', '真正地；非常', 'I really like this song.', '我真的很喜欢这首歌。'],
+  ['quite', '/kwaɪt/', 'adv.', '相当；很', 'The test was quite easy.', '这次测验相当简单。'],
+  ['always', '/ˈɔːl.weɪz/', 'adv.', '总是', 'I always walk to school.', '我总是走路上学。'],
+  ['usually', '/ˈjuː.ʒu.ə.li/', 'adv.', '通常', 'I usually have cereal for breakfast.', '我早餐通常吃麦片。'],
+  ['often', '/ˈɒf.ən/', 'adv.', '经常', 'We often play in the park.', '我们经常在公园玩。'],
+  ['sometimes', '/ˈsʌm.taɪmz/', 'adv.', '有时', 'Sometimes I go to school by bus.', '有时我坐公交车上学。'],
+  ['never', '/ˈnev.ər/', 'adv.', '从不', 'I never eat meat.', '我从不吃肉。'],
+  ['already', '/ɔːlˈred.i/', 'adv.', '已经', 'I have already finished my homework.', '我已经做完作业了。'],
+  ['still', '/stɪl/', 'adv.', '仍然；还', 'Are you still hungry?', '你还饿吗？'],
+  ['yet', '/jet/', 'adv.', '还；尚未', "I haven't finished yet.", '我还没做完。'],
+  ['just', '/dʒʌst/', 'adv.', '刚刚；只是', 'I have just eaten.', '我刚吃过。'],
+  ['again', '/əˈɡen/', 'adv.', '再；又', 'Please say it again.', '请再说一遍。'],
+  ['also', '/ˈɔːl.səʊ/', 'adv.', '也', 'She speaks English and also French.', '她会说英语，也会说法语。'],
+  ['even', '/ˈiː.vən/', 'adv.', '甚至', 'Even my grandma uses a smartphone.', '连我奶奶都用智能手机。'],
+  ['almost', '/ˈɔːl.məʊst/', 'adv.', '几乎', 'It is almost time for lunch.', '快到午饭时间了。'],
+  ['nearly', '/ˈnɪə.li/', 'adv.', '几乎；差不多', 'I nearly missed the bus.', '我差点错过公交车。'],
+  ['quickly', '/ˈkwɪk.li/', 'adv.', '快速地', 'Come here quickly!', '快过来！'],
+  ['slowly', '/ˈsləʊ.li/', 'adv.', '慢慢地', 'Please speak slowly.', '请说慢一点。'],
+  ['carefully', '/ˈkeə.fəl.i/', 'adv.', '小心地；仔细地', 'Read the question carefully.', '仔细读题。'],
+  ['easily', '/ˈiː.zəl.i/', 'adv.', '容易地', 'She won the race easily.', '她轻松赢了比赛。'],
+  ['badly', '/ˈbæd.li/', 'adv.', '糟糕地；严重地', 'He sang badly.', '他唱得很糟。'],
+  ['loudly', '/ˈlaʊd.li/', 'adv.', '大声地', "Don't talk so loudly.", '说话别那么大声。'],
+  ['quietly', '/ˈkwaɪ.ət.li/', 'adv.', '安静地；小声地', 'Please close the door quietly.', '请轻轻关门。'],
+  ['suddenly', '/ˈsʌd.ən.li/', 'adv.', '突然', 'Suddenly, the lights went out.', '突然，灯灭了。'],
+  ['finally', '/ˈfaɪ.nəl.i/', 'adv.', '最后；终于', 'We finally arrived at the hotel.', '我们终于到了酒店。'],
+  ['actually', '/ˈæk.tʃu.ə.li/', 'adv.', '实际上', 'Actually, I prefer tea.', '其实我更喜欢茶。'],
+  ['probably', '/ˈprɒb.ə.bli/', 'adv.', '可能；大概', 'It will probably rain later.', '待会儿可能会下雨。'],
+  ['perhaps', '/pəˈhæps/', 'adv.', '也许', 'Perhaps she is at home.', '也许她在家。'],
+  ['maybe', '/ˈmeɪ.bi/', 'adv.', '也许；可能', 'Maybe we can go tomorrow.', '也许我们明天可以去。'],
+  ['especially', '/ɪˈspeʃ.əl.i/', 'adv.', '尤其；特别', 'I love fruit, especially apples.', '我喜欢水果，尤其是苹果。'],
+  ['exactly', '/ɪɡˈzækt.li/', 'adv.', '确切地；正是', "It is exactly three o'clock.", '现在正好三点。'],
+  ['here', '/hɪər/', 'adv.', '这里', 'Come here, please.', '请到这里来。'],
+  ['there', '/ðeər/', 'adv.', '那里', 'Put the box over there.', '把箱子放在那边。'],
+  ['everywhere', '/ˈev.ri.weər/', 'adv.', '到处', 'I looked everywhere for my keys.', '我到处找我的钥匙。'],
+  ['away', '/əˈweɪ/', 'adv.', '离开；在远处', 'Go away!', '走开！'],
+  ['outside', '/ˌaʊtˈsaɪd/', 'adv.', '在外面', "Let's play outside.", '我们去外面玩吧。'],
+  ['inside', '/ˌɪnˈsaɪd/', 'adv.', '在里面', 'It is raining, so we stayed inside.', '下雨了，所以我们待在屋里。'],
+  ['later', '/ˈleɪ.tər/', 'adv.', '以后；稍后', 'See you later!', '待会儿见！'],
+  ['ever', '/ˈev.ər/', 'adv.', '曾经；从来', 'Have you ever been to London?', '你去过伦敦吗？'],
+];
+
+// ---- src/words/function.js ----
+// 功能词 · 目标 150 词
+// 每项：[英文, 音标(英式), 词性, 中文, 例句, 例句翻译]
+const W_FUNCTION = [
+  ['I', '/aɪ/', 'pron.', '我', 'I am eleven years old.', '我十一岁。'],
+  ['you', '/juː/', 'pron.', '你；你们', 'Are you ready?', '你准备好了吗？'],
+  ['he', '/hiː/', 'pron.', '他', 'He is my best friend.', '他是我最好的朋友。'],
+  ['she', '/ʃiː/', 'pron.', '她', 'She likes reading.', '她喜欢阅读。'],
+  ['it', '/ɪt/', 'pron.', '它', 'It is a beautiful day.', '今天天气真好。'],
+  ['we', '/wiː/', 'pron.', '我们', 'We go to the same school.', '我们上同一所学校。'],
+  ['they', '/ðeɪ/', 'pron.', '他们；她们；它们', 'They are playing football.', '他们在踢足球。'],
+  ['me', '/miː/', 'pron.', '我（宾格）', 'Can you help me?', '你能帮我吗？'],
+  ['him', '/hɪm/', 'pron.', '他（宾格）', 'I gave him a present.', '我给了他一份礼物。'],
+  ['her', '/hɜːr/', 'pron.', '她（宾格）；她的', 'I called her yesterday.', '我昨天给她打了电话。'],
+  ['us', '/ʌs/', 'pron.', '我们（宾格）', 'Come with us!', '和我们一起来吧！'],
+  ['them', '/ðem/', 'pron.', '他们（宾格）', 'I like them very much.', '我非常喜欢他们。'],
+  ['my', '/maɪ/', 'det.', '我的', 'This is my bag.', '这是我的包。'],
+  ['your', '/jɔːr/', 'det.', '你的；你们的', 'What is your name?', '你叫什么名字？'],
+  ['his', '/hɪz/', 'det.', '他的', 'His dog is very big.', '他的狗很大。'],
+  ['its', '/ɪts/', 'det.', '它的', 'The cat is eating its food.', '猫在吃它的食物。'],
+  ['our', '/aʊər/', 'det.', '我们的', 'Our house is near the park.', '我们家在公园附近。'],
+  ['their', '/ðeər/', 'det.', '他们的', 'Their teacher is very nice.', '他们的老师人很好。'],
+  ['mine', '/maɪn/', 'pron.', '我的（东西）', 'This pen is mine.', '这支笔是我的。'],
+  ['yours', '/jɔːz/', 'pron.', '你的（东西）', 'Is this book yours?', '这本书是你的吗？'],
+  ['myself', '/maɪˈself/', 'pron.', '我自己', 'I made this cake myself.', '这个蛋糕是我自己做的。'],
+  ['yourself', '/jɔːˈself/', 'pron.', '你自己', 'Did you hurt yourself?', '你伤到自己了吗？'],
+  ['someone', '/ˈsʌm.wʌn/', 'pron.', '某人；有人', 'Someone is at the door.', '有人在门口。'],
+  ['something', '/ˈsʌm.θɪŋ/', 'pron.', '某事；某物', 'I want to tell you something.', '我想告诉你一件事。'],
+  ['anyone', '/ˈen.i.wʌn/', 'pron.', '任何人', 'Is anyone at home?', '有人在家吗？'],
+  ['anything', '/ˈen.i.θɪŋ/', 'pron.', '任何事物', 'Do you need anything?', '你需要什么东西吗？'],
+  ['everyone', '/ˈev.ri.wʌn/', 'pron.', '每个人', 'Everyone likes her.', '每个人都喜欢她。'],
+  ['everything', '/ˈev.ri.θɪŋ/', 'pron.', '一切；所有事物', 'Thank you for everything.', '谢谢你所做的一切。'],
+  ['no one', '/ˈnəʊ ˌwʌn/', 'pron.', '没有人', 'No one was at home.', '家里没有人。'],
+  ['nobody', '/ˈnəʊ.bə.di/', 'pron.', '没有人；无人', 'Nobody knows the answer.', '没有人知道答案。'],
+  ['nothing', '/ˈnʌθ.ɪŋ/', 'pron.', '没有东西；什么都没有', 'There is nothing in the box.', '箱子里什么都没有。'],
+  ['each', '/iːtʃ/', 'det.', '每个；各自', 'Each student has a book.', '每个学生都有一本书。'],
+  ['each other', '/ˌiːtʃ ˈʌð.ər/', 'pron.', '互相', 'We help each other.', '我们互相帮助。'],
+  ['both', '/bəʊθ/', 'det.', '两者都', 'Both my parents are teachers.', '我父母都是老师。'],
+  ['all', '/ɔːl/', 'det.', '所有；全部', 'All the children are happy.', '所有的孩子都很开心。'],
+  ['some', '/sʌm/', 'det.', '一些', 'Would you like some tea?', '你想喝点茶吗？'],
+  ['any', '/ˈen.i/', 'det.', '任何；一些（疑问、否定）', "I don't have any money.", '我一点钱也没有。'],
+  ['another', '/əˈnʌð.ər/', 'det.', '另一个；再一个', 'Can I have another biscuit?', '我能再吃一块饼干吗？'],
+  ['other', '/ˈʌð.ər/', 'det.', '其他的；另外的', 'Where are the other students?', '其他学生在哪里？'],
+  ['a', '/eɪ/', 'det.', '一（个）', 'I have a dog.', '我有一只狗。'],
+  ['an', '/æn/', 'det.', '一（个）（用于元音前）', 'She ate an apple.', '她吃了一个苹果。'],
+  ['the', '/ðiː/', 'det.', '这；那（定冠词）', 'The sun is hot.', '太阳很热。'],
+  ['this', '/ðɪs/', 'det.', '这；这个', 'This is my friend Anna.', '这是我的朋友安娜。'],
+  ['that', '/ðæt/', 'det.', '那；那个', 'Who is that man?', '那个男人是谁？'],
+  ['these', '/ðiːz/', 'det.', '这些', 'These shoes are new.', '这双鞋是新的。'],
+  ['those', '/ðəʊz/', 'det.', '那些', 'Look at those birds!', '看那些鸟！'],
+  ['every', '/ˈev.ri/', 'det.', '每个；每', 'I swim every day.', '我每天游泳。'],
+  ['many', '/ˈmen.i/', 'det.', '许多（可数）', 'How many books do you have?', '你有多少本书？'],
+  ['much', '/mʌtʃ/', 'det.', '许多（不可数）；非常', "I don't have much time.", '我没有多少时间。'],
+  ['more', '/mɔːr/', 'det.', '更多的', 'Can I have more rice?', '我能再要点米饭吗？'],
+  ['most', '/məʊst/', 'det.', '大多数；最', 'Most children like sweets.', '大多数孩子喜欢糖果。'],
+  ['few', '/fjuː/', 'det.', '很少的；几个', 'I have a few friends in this town.', '我在这个镇上有几个朋友。'],
+  ['a little', '/ə ˈlɪt.əl/', 'det.', '一点儿（不可数）', 'Add a little salt.', '加一点盐。'],
+  ['a lot of', '/ə ˈlɒt əv/', 'det.', '许多', 'There are a lot of people here.', '这里有很多人。'],
+  ['lots of', '/ˈlɒts əv/', 'det.', '大量；许多', 'She has lots of friends.', '她有很多朋友。'],
+  ['enough', '/ɪˈnʌf/', 'det.', '足够的', 'Do we have enough chairs?', '我们的椅子够吗？'],
+  ['what', '/wɒt/', 'pron.', '什么', 'What is this?', '这是什么？'],
+  ['who', '/huː/', 'pron.', '谁', 'Who is your teacher?', '你的老师是谁？'],
+  ['whose', '/huːz/', 'pron.', '谁的', 'Whose bag is this?', '这是谁的包？'],
+  ['which', '/wɪtʃ/', 'pron.', '哪一个；哪些', 'Which colour do you like?', '你喜欢哪种颜色？'],
+  ['where', '/weər/', 'adv.', '在哪里', 'Where do you live?', '你住在哪里？'],
+  ['when', '/wen/', 'adv.', '什么时候；当……时', 'When is your birthday?', '你的生日是什么时候？'],
+  ['why', '/waɪ/', 'adv.', '为什么', 'Why are you late?', '你为什么迟到？'],
+  ['how', '/haʊ/', 'adv.', '怎样；如何', 'How do you go to school?', '你怎么去上学？'],
+  ['how much', '/ˌhaʊ ˈmʌtʃ/', 'phr.', '多少（钱/不可数）', 'How much is this T-shirt?', '这件 T 恤多少钱？'],
+  ['how many', '/ˌhaʊ ˈmen.i/', 'phr.', '多少（可数）', 'How many brothers do you have?', '你有几个兄弟？'],
+  ['in', '/ɪn/', 'prep.', '在……里面', 'The cat is in the box.', '猫在箱子里。'],
+  ['on', '/ɒn/', 'prep.', '在……上面', 'The book is on the table.', '书在桌子上。'],
+  ['at', '/æt/', 'prep.', '在（某地点/时刻）', 'I get up at seven.', '我七点起床。'],
+  ['to', '/tuː/', 'prep.', '到；向', 'I go to school by bus.', '我坐公交车去上学。'],
+  ['from', '/frɒm/', 'prep.', '从；来自', 'I am from China.', '我来自中国。'],
+  ['of', '/ɒv/', 'prep.', '……的', 'This is a photo of my family.', '这是一张我家人的照片。'],
+  ['for', '/fɔːr/', 'prep.', '为了；给；持续', 'This present is for you.', '这份礼物是给你的。'],
+  ['with', '/wɪð/', 'prep.', '和……一起；带有', 'I live with my parents.', '我和父母住在一起。'],
+  ['without', '/wɪˈðaʊt/', 'prep.', '没有', "I can't live without music.", '没有音乐我活不下去。'],
+  ['about', '/əˈbaʊt/', 'prep.', '关于；大约', 'This book is about animals.', '这本书是关于动物的。'],
+  ['by', '/baɪ/', 'prep.', '乘（交通工具）；在旁边；被', 'We went there by train.', '我们坐火车去了那里。'],
+  ['under', '/ˈʌn.dər/', 'prep.', '在……下面', 'The dog is under the table.', '狗在桌子下面。'],
+  ['over', '/ˈəʊ.vər/', 'prep.', '在……上方；越过', 'The plane flew over the city.', '飞机从城市上空飞过。'],
+  ['above', '/əˈbʌv/', 'prep.', '在……上面（高于）', 'There is a lamp above the table.', '桌子上方有一盏灯。'],
+  ['below', '/bɪˈləʊ/', 'prep.', '在……下面（低于）', 'Write your name below the picture.', '把名字写在图片下面。'],
+  ['between', '/bɪˈtwiːn/', 'prep.', '在（两者）之间', 'The bank is between the shop and the cafe.', '银行在商店和咖啡馆之间。'],
+  ['among', '/əˈmʌŋ/', 'prep.', '在（三者以上）之中', 'The house is among the trees.', '房子在树丛之中。'],
+  ['behind', '/bɪˈhaɪnd/', 'prep.', '在……后面', 'The ball is behind the door.', '球在门后面。'],
+  ['in front of', '/ɪn ˈfrʌnt əv/', 'prep.', '在……前面', 'There is a tree in front of our house.', '我们家前面有一棵树。'],
+  ['next to', '/ˈnekst tuː/', 'prep.', '紧挨着；在……旁边', 'Sit next to me.', '坐在我旁边。'],
+  ['near', '/nɪər/', 'prep.', '在……附近', 'I live near the school.', '我住在学校附近。'],
+  ['opposite', '/ˈɒp.ə.zɪt/', 'prep.', '在……对面', 'The bank is opposite the post office.', '银行在邮局对面。'],
+  ['across', '/əˈkrɒs/', 'prep.', '穿过；在对面', 'We swam across the river.', '我们游过了河。'],
+  ['along', '/əˈlɒŋ/', 'prep.', '沿着', 'Walk along this road.', '沿着这条路走。'],
+  ['through', '/θruː/', 'prep.', '穿过；通过', 'The train went through the tunnel.', '火车穿过了隧道。'],
+  ['into', '/ˈɪn.tuː/', 'prep.', '进入', 'He jumped into the pool.', '他跳进了泳池。'],
+  ['out of', '/ˈaʊt əv/', 'prep.', '从……出来', 'She took a pen out of her bag.', '她从包里拿出一支笔。'],
+  ['up', '/ʌp/', 'adv.', '向上', 'Look up at the sky.', '抬头看天空。'],
+  ['down', '/daʊn/', 'adv.', '向下', 'Sit down, please.', '请坐下。'],
+  ['around', '/əˈraʊnd/', 'prep.', '围绕；在……周围', 'We walked around the lake.', '我们绕着湖走了一圈。'],
+  ['after', '/ˈɑːf.tər/', 'prep.', '在……之后', 'I do my homework after dinner.', '我晚饭后做作业。'],
+  ['before', '/bɪˈfɔːr/', 'prep.', '在……之前', 'Wash your hands before lunch.', '午饭前洗手。'],
+  ['during', '/ˈdʒʊə.rɪŋ/', 'prep.', '在……期间', "Don't talk during the test.", '考试期间不要说话。'],
+  ['until', '/ənˈtɪl/', 'prep.', '直到', "I waited until six o'clock.", '我一直等到六点。'],
+  ['since', '/sɪns/', 'prep.', '自从', 'I have lived here since 2018.', '我从 2018 年起就住在这里。'],
+  ['against', '/əˈɡenst/', 'prep.', '反对；倚靠；对抗', 'We played against a strong team.', '我们和一支强队比赛。'],
+  ['as', '/æz/', 'prep.', '作为；像……一样', 'She works as a nurse.', '她当护士。'],
+  ['except', '/ɪkˈsept/', 'prep.', '除……之外', 'Everyone came except Tom.', '除了 Tom 大家都来了。'],
+  ['and', '/ænd/', 'conj.', '和；并且', 'I like apples and bananas.', '我喜欢苹果和香蕉。'],
+  ['but', '/bʌt/', 'conj.', '但是', "I like tea, but I don't like coffee.", '我喜欢茶，但不喜欢咖啡。'],
+  ['or', '/ɔːr/', 'conj.', '或者；还是', 'Do you want tea or juice?', '你想要茶还是果汁？'],
+  ['so', '/səʊ/', 'conj.', '所以；如此', 'It was raining, so we stayed at home.', '下雨了，所以我们待在家里。'],
+  ['because', '/bɪˈkɒz/', 'conj.', '因为', 'I am tired because I went to bed late.', '我很累，因为我睡得晚。'],
+  ['if', '/ɪf/', 'conj.', '如果', 'If it rains, we will stay at home.', '如果下雨，我们就待在家里。'],
+  ['while', '/waɪl/', 'conj.', '当……时；而', 'I listen to music while I cook.', '我边做饭边听音乐。'],
+  ['although', '/ɔːlˈðəʊ/', 'conj.', '虽然；尽管', 'Although it was cold, we went swimming.', '虽然很冷，我们还是去游泳了。'],
+  ['than', '/ðæn/', 'conj.', '比', 'My brother is taller than me.', '我哥哥比我高。'],
+  ['then', '/ðen/', 'adv.', '然后；那时', 'First wash your hands, then eat.', '先洗手，然后吃饭。'],
+  ['can', '/kæn/', 'v.', '能；会；可以', 'I can swim.', '我会游泳。'],
+  ['could', '/kʊd/', 'v.', '能（can 的过去式）；可以', 'Could you help me, please?', '你能帮帮我吗？'],
+  ['will', '/wɪl/', 'v.', '将；会', 'It will be sunny tomorrow.', '明天会是晴天。'],
+  ['would', '/wʊd/', 'v.', '会；愿意（委婉）', 'Would you like some cake?', '你想吃点蛋糕吗？'],
+  ['shall', '/ʃæl/', 'v.', '（提建议）……好吗', 'Shall we go to the cinema?', '我们去看电影好吗？'],
+  ['should', '/ʃʊd/', 'v.', '应该', 'You should go to bed early.', '你应该早点睡。'],
+  ['must', '/mʌst/', 'v.', '必须', 'You must wear a helmet.', '你必须戴头盔。'],
+  ['might', '/maɪt/', 'v.', '可能；也许', 'It might rain this afternoon.', '今天下午可能会下雨。'],
+  ['have to', '/ˈhæv tuː/', 'phr.', '不得不；必须', 'I have to go home now.', '我现在得回家了。'],
+  ['hello', '/heˈləʊ/', 'excl.', '你好', 'Hello! How are you?', '你好！你好吗？'],
+  ['hi', '/haɪ/', 'excl.', '嗨', 'Hi, Tom!', '嗨，Tom！'],
+  ['goodbye', '/ɡʊdˈbaɪ/', 'excl.', '再见', 'Goodbye! See you tomorrow.', '再见！明天见。'],
+  ['bye', '/baɪ/', 'excl.', '再见（口语）', 'Bye, Mum!', '妈妈再见！'],
+  ['please', '/pliːz/', 'adv.', '请', 'Can I have some water, please?', '请给我一些水好吗？'],
+  ['thank you', '/ˈθæŋk ˌjuː/', 'phr.', '谢谢你', 'Thank you for your help.', '谢谢你的帮助。'],
+  ['thanks', '/θæŋks/', 'excl.', '谢谢', 'Thanks a lot!', '非常感谢！'],
+  ['excuse me', '/ɪkˈskjuːz ˌmiː/', 'phr.', '打扰一下；劳驾', 'Excuse me, where is the toilet?', '打扰一下，厕所在哪里？'],
+  ['OK', '/ˌəʊˈkeɪ/', 'excl.', '好的；可以', "OK, let's go.", '好的，我们走吧。'],
+  ['oh', '/əʊ/', 'excl.', '哦；啊', "Oh no! I've lost my key.", '哦不！我把钥匙丢了。'],
+  ['wow', '/waʊ/', 'excl.', '哇', "Wow! That's amazing!", '哇！太棒了！'],
+  ['yes', '/jes/', 'adv.', '是；对', 'Yes, I can.', '是的，我会。'],
+  ['no', '/nəʊ/', 'adv.', '不（回答）；没有', "No, thank you. I'm full.", '不用了，谢谢，我吃饱了。'],
+  ['of course', '/əv ˈkɔːs/', 'phr.', '当然', 'Of course you can come!', '你当然可以来！'],
+  ['see you', '/ˈsiː ˌjuː/', 'phr.', '再见；回头见', 'See you on Monday!', '星期一见！'],
+  ['good luck', '/ˌɡʊd ˈlʌk/', 'phr.', '祝你好运', 'Good luck in your exam!', '祝你考试顺利！'],
+  ['never mind', '/ˌnev.ə ˈmaɪnd/', 'phr.', '没关系', "Never mind. It's not important.", '没关系，这不重要。'],
+  ['congratulations', '/kənˌɡrætʃ.əˈleɪ.ʃənz/', 'excl.', '祝贺', 'Congratulations on winning the race!', '祝贺你赢了比赛！'],
+  ['pardon', '/ˈpɑː.dən/', 'excl.', '请再说一遍；对不起', "Pardon? I didn't hear you.", '请再说一遍？我没听清。'],
+  ['dear', '/dɪər/', 'adj.', '亲爱的（信件称呼）', 'Dear Sam, thank you for your letter.', '亲爱的 Sam，谢谢你的来信。'],
+  ['not', '/nɒt/', 'adv.', '不；没（用于否定）', 'I am not hungry.', '我不饿。'],
+  ['only', '/ˈəʊn.li/', 'adv.', '只；仅仅', 'I only have one pen.', '我只有一支笔。'],
+  ['too', '/tuː/', 'adv.', '也；太', 'I like pizza too.', '我也喜欢比萨。'],
+  ['either', '/ˈaɪ.ðər/', 'adv.', '也（用于否定）；任一', "I don't like it either.", '我也不喜欢它。'],
+  ['neither', '/ˈnaɪ.ðər/', 'det.', '两者都不', 'Neither answer is correct.', '两个答案都不对。'],
+  ['such', '/sʌtʃ/', 'det.', '这样的；如此', 'It was such a lovely day.', '那天天气真好。'],
+  ['instead', '/ɪnˈsted/', 'adv.', '代替；反而', "There's no tea, so I'll have juice instead.", '没有茶了，那我就喝果汁吧。'],
+];
+
+// ---- src/words/index.js ----
+
+const RAW_WORDS = {
+  family: W_FAMILY,
+  school: W_SCHOOL,
+  food: W_FOOD,
+  home: W_HOME,
+  clothes: W_CLOTHES,
+  body: W_BODY,
+  sport: W_SPORT,
+  hobbies: W_HOBBIES,
+  travel: W_TRAVEL,
+  places: W_PLACES,
+  weather: W_WEATHER,
+  animals: W_ANIMALS,
+  nature: W_NATURE,
+  shopping: W_SHOPPING,
+  work: W_WORK,
+  tech: W_TECH,
+  time: W_TIME,
+  numbers: W_NUMBERS,
+  feelings: W_FEELINGS,
+  verbs: W_VERBS,
+  describe: W_DESCRIBE,
+  function: W_FUNCTION,
+};
+
+const WORDS = TOPICS.flatMap(t => RAW_WORDS[t.key].map(([en, ipa, pos, zh, ex, exZh]) => ({ id: en, en, ipa, pos, zh, topic: t.key, ex, exZh })));
+
+const WORD_BY_ID = new Map(WORDS.map(w => [w.id, w]));
+
+// ---- src/srs.js ----
+
+const INTERVALS = [1, 2, 4];
+const RECOVER_STREAK = 3;
+const CHECK_DAYS = 30;
+
+function forgottenRecord(today) {
+  return { status: 'forgotten', streak: 0, due: addDays(today, INTERVALS[0]), lastSeen: today };
+}
+
+function checkLaterRecord(status, today) {
+  return { status, streak: 0, due: addDays(today, CHECK_DAYS), lastSeen: today };
+}
+
+function screenResult(correct, today) {
+  return correct ? checkLaterRecord('known', today) : forgottenRecord(today);
+}
+
+function reviewResult(rec, passed, today) {
+  if (!passed) return forgottenRecord(today);
+  const streak = rec.streak + 1;
+  if (streak >= RECOVER_STREAK) return checkLaterRecord('recovered', today);
+  return { status: 'forgotten', streak, due: addDays(today, INTERVALS[streak]), lastSeen: today };
+}
+
+function checkResult(rec, correct, today) {
+  return correct ? checkLaterRecord(rec.status, today) : forgottenRecord(today);
+}
+
+function isCheckItem(rec) {
+  return rec.status === 'known' || rec.status === 'recovered';
+}
+
+// ---- src/daily.js ----
+const REVIEW_CAP = 40;
+
+function buildToday(words, progress, settings, today) {
+  const order = new Map(words.map((w, i) => [w.id, i]));
+  const reviewIds = Object.keys(progress)
+    .filter(id => order.has(id) && progress[id].due <= today)
+    .sort((a, b) => {
+      const da = progress[a].due, db = progress[b].due;
+      if (da !== db) return da < db ? -1 : 1;
+      return order.get(a) - order.get(b);
+    })
+    .slice(0, REVIEW_CAP);
+  const screenIds = words.filter(w => !progress[w.id]).slice(0, settings.dailyScreen).map(w => w.id);
+  return { date: today, reviewIds, screenIds, reviewDone: [], screenDone: [], reviewStarred: false, screenStarred: false };
+}
+
+function ensureToday(state, words, today) {
+  if (!state.today || state.today.date !== today) {
+    return { ...state, today: buildToday(words, state.words, state.settings, today) };
+  }
+  const valid = new Set(words.map(w => w.id));
+  const t = state.today;
+  if (t.reviewIds.every(id => valid.has(id)) && t.screenIds.every(id => valid.has(id))) return state;
+  return {
+    ...state,
+    today: { ...t, reviewIds: t.reviewIds.filter(id => valid.has(id)), screenIds: t.screenIds.filter(id => valid.has(id)) },
+  };
+}
+
+function remaining(list, done) {
+  const doneSet = new Set(done);
+  return list.filter(id => !doneSet.has(id));
+}
+
+function isComplete(list, done) {
+  return remaining(list, done).length === 0;
+}
+
+function countByStatus(words, progress) {
+  const counts = { new: 0, known: 0, forgotten: 0, recovered: 0 };
+  for (const w of words) counts[progress[w.id] ? progress[w.id].status : 'new']++;
+  return counts;
+}
+
+// ---- src/rewards.js ----
+
+const TASK_STARS = 5;
+const CHECKIN_STARS = 5;
+
+function streakBonus(streakDays) {
+  let bonus = 0;
+  if (streakDays % 7 === 0) bonus += 20;
+  if (streakDays % 30 === 0) bonus += 100;
+  return bonus;
+}
+
+function applyCheckin(stats, today) {
+  const streakDays = stats.lastCheckin === addDays(today, -1) ? stats.streakDays + 1 : 1;
+  const gained = CHECKIN_STARS + streakBonus(streakDays);
+  return { stats: { ...stats, streakDays, lastCheckin: today, stars: stats.stars + gained }, gained };
+}
+
+function displayStreak(stats, today) {
+  const active = stats.lastCheckin === today || stats.lastCheckin === addDays(today, -1);
+  return active ? stats.streakDays : 0;
+}
+
+// ---- src/session.js ----
+
+function emptyHistoryDay() {
+  return { screenRight: 0, screenTotal: 0, reviewRight: 0, reviewTotal: 0, checked: false };
+}
+
+function recordAnswer(state, id, kind, ok) {
+  const date = state.today.date;
+  const doneKey = kind === 'screen' ? 'screenDone' : 'reviewDone';
+  if (state.today[doneKey].includes(id)) return state;
+  let rec;
+  if (kind === 'screen') rec = screenResult(ok, date);
+  else if (kind === 'review') rec = reviewResult(state.words[id], ok, date);
+  else rec = checkResult(state.words[id], ok, date);
+  const day = { ...emptyHistoryDay(), ...state.stats.history[date] };
+  if (kind === 'screen') {
+    day.screenTotal++;
+    if (ok) day.screenRight++;
+  } else {
+    day.reviewTotal++;
+    if (ok) day.reviewRight++;
+  }
+  return {
+    ...state,
+    words: { ...state.words, [id]: rec },
+    today: { ...state.today, [doneKey]: [...state.today[doneKey], id] },
+    stats: { ...state.stats, history: { ...state.stats.history, [date]: day } },
+  };
+}
+
+function settle(state) {
+  const date = state.today.date;
+  const today = { ...state.today };
+  let stats = state.stats;
+  const events = [];
+  for (const task of ['review', 'screen']) {
+    const list = today[`${task}Ids`];
+    const flag = `${task}Starred`;
+    if (list.length > 0 && !today[flag] && isComplete(list, today[`${task}Done`])) {
+      today[flag] = true;
+      stats = { ...stats, stars: stats.stars + TASK_STARS };
+      events.push({ type: 'task', task, stars: TASK_STARS });
+    }
+  }
+  const day = { ...emptyHistoryDay(), ...stats.history[date] };
+  if (!day.checked && isComplete(today.reviewIds, today.reviewDone) && isComplete(today.screenIds, today.screenDone)) {
+    const r = applyCheckin(stats, date);
+    stats = { ...r.stats, history: { ...r.stats.history, [date]: { ...day, checked: true } } };
+    events.push({ type: 'checkin', stars: r.gained, streakDays: stats.streakDays });
+  }
+  return { state: { ...state, today, stats }, events };
+}
+
+function normalizeSpelling(s) {
+  return s.trim().toLowerCase().replace(/[‘’ʼ]/g, "'").replace(/\./g, '').replace(/\s+/g, ' ');
+}
+
+function isSpellingCorrect(input, en) {
+  return normalizeSpelling(input) !== '' && normalizeSpelling(input) === normalizeSpelling(en);
+}
+
+// ---- src/distractors.js ----
+function shuffleInPlace(arr, rng) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function pickDistractors(word, words, field = 'zh', rng = Math.random) {
+  const usedLabels = new Set([word[field]]);
+  const picked = [];
+  const tiers = [
+    w => w.topic === word.topic && w.pos === word.pos,
+    w => w.pos === word.pos,
+    () => true,
+  ];
+  for (const tier of tiers) {
+    const pool = shuffleInPlace(words.filter(w => w.id !== word.id && tier(w)), rng);
+    for (const w of pool) {
+      if (picked.length === 3) return picked;
+      if (usedLabels.has(w[field])) continue;
+      usedLabels.add(w[field]);
+      picked.push(w);
+    }
+  }
+  return picked;
+}
+
+function buildChoices(word, words, field = 'zh', rng = Math.random) {
+  return shuffleInPlace([word, ...pickDistractors(word, words, field, rng)], rng)
+    .map(w => ({ id: w.id, label: w[field], correct: w.id === word.id }));
+}
+
+// ---- src/storage.js ----
+const STORAGE_KEY = 'ketVocab.v1';
+const SCREEN_OPTIONS = [30, 50, 100];
+const TIMER_OPTIONS = [0, 5, 8, 12];
+const REC_STATUSES = ['known', 'forgotten', 'recovered'];
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function defaultState() {
+  return {
+    version: 1,
+    settings: { dailyScreen: 50, timerSec: 8, spelling: true },
+    words: {},
+    today: null,
+    stats: { stars: 0, streakDays: 0, lastCheckin: null, history: {} },
+  };
+}
+
+function isPlainObject(v) {
+  return v !== null && typeof v === 'object' && !Array.isArray(v);
+}
+
+function isStringArray(v) {
+  return Array.isArray(v) && v.every(x => typeof x === 'string');
+}
+
+function validateState(s) {
+  if (!isPlainObject(s) || s.version !== 1) return false;
+  const st = s.settings;
+  if (!isPlainObject(st) || !SCREEN_OPTIONS.includes(st.dailyScreen) || !TIMER_OPTIONS.includes(st.timerSec) || typeof st.spelling !== 'boolean') return false;
+  if (!isPlainObject(s.words)) return false;
+  for (const r of Object.values(s.words)) {
+    if (!isPlainObject(r) || !REC_STATUSES.includes(r.status) || !Number.isInteger(r.streak) || !DATE_RE.test(r.due)) return false;
+  }
+  if (s.today !== null) {
+    const t = s.today;
+    if (!isPlainObject(t) || !DATE_RE.test(t.date)) return false;
+    if (![t.reviewIds, t.screenIds, t.reviewDone, t.screenDone].every(isStringArray)) return false;
+    if (typeof t.reviewStarred !== 'boolean' || typeof t.screenStarred !== 'boolean') return false;
+  }
+  const x = s.stats;
+  if (!isPlainObject(x) || typeof x.stars !== 'number' || !Number.isInteger(x.streakDays)) return false;
+  if (!(x.lastCheckin === null || DATE_RE.test(x.lastCheckin)) || !isPlainObject(x.history)) return false;
+  return true;
+}
+
+function getStorage() {
+  try {
+    const ls = window.localStorage;
+    const probe = STORAGE_KEY + '.probe';
+    ls.setItem(probe, '1');
+    ls.removeItem(probe);
+    return ls;
+  } catch {
+    return null;
+  }
+}
+
+function loadState(storage) {
+  if (!storage) return { state: defaultState(), warning: 'unavailable' };
+  let raw;
+  try {
+    raw = storage.getItem(STORAGE_KEY);
+  } catch {
+    return { state: defaultState(), warning: 'unavailable' };
+  }
+  if (raw === null) return { state: defaultState(), warning: null };
+  try {
+    const parsed = JSON.parse(raw);
+    if (validateState(parsed)) return { state: parsed, warning: null };
+  } catch {
+    // 落到下面按损坏处理
+  }
+  try {
+    storage.setItem(STORAGE_KEY + '.broken', raw);
+  } catch {
+    // 另存失败也继续启动
+  }
+  return { state: defaultState(), warning: 'corrupt' };
+}
+
+function saveState(storage, state) {
+  if (!storage) return false;
+  try {
+    storage.setItem(STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function exportJSON(state) {
+  return JSON.stringify(state, null, 2);
+}
+
+function importJSON(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error('文件不是有效的备份');
+  }
+  if (!validateState(parsed)) throw new Error('文件不是有效的备份');
+  return parsed;
+}
+
+// ---- src/speech.js ----
+let speechVoice = null;
+
+function pickVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  speechVoice =
+    voices.find(v => /^en[-_]GB$/i.test(v.lang)) ||
+    voices.find(v => /^en[-_]/i.test(v.lang)) ||
+    null;
+}
+
+function initSpeech() {
+  if (!('speechSynthesis' in window)) return;
+  pickVoice();
+  window.speechSynthesis.addEventListener('voiceschanged', pickVoice);
+}
+
+function canSpeak() {
+  return speechVoice !== null;
+}
+
+function speak(text) {
+  if (!speechVoice) return false;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.voice = speechVoice;
+  u.lang = speechVoice.lang;
+  u.rate = 0.9;
+  window.speechSynthesis.speak(u);
+  return true;
+}
+
+// ---- src/sound.js ----
+let audioCtx = null;
+
+function playTone(ok) {
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const notes = ok ? [880, 1320] : [220, 196];
+    notes.forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const t0 = audioCtx.currentTime + i * 0.1;
+      osc.type = ok ? 'sine' : 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.15, t0 + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.26);
+    });
+  } catch {
+    // 没有声音也不影响练习
+  }
+}
+
+// ---- src/ui/dom.js ----
+
+const DOM_PROPS = ['value', 'checked', 'disabled'];
+
+function h(tag, attrs = {}, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === 'class') el.className = v;
+    else if (DOM_PROPS.includes(k)) el[k] = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of children.flat()) {
+    if (c === null || c === undefined || c === false || c === '') continue;
+    el.append(c instanceof Node ? c : String(c));
+  }
+  return el;
+}
+
+function toast(msg) {
+  const el = h('div', { class: 'toast' }, msg);
+  document.body.append(el);
+  setTimeout(() => el.remove(), 1800);
+}
+
+function speakButton(text, extraClass = '') {
+  const cls = ['speak', extraClass, canSpeak() ? '' : 'disabled'].filter(Boolean).join(' ');
+  return h('button', {
+    class: cls,
+    'aria-label': '发音',
+    onclick: e => {
+      e.stopPropagation();
+      if (!speak(text)) toast('本设备不支持发音');
+    },
+  }, '🔊');
+}
+
+const STATUS_LABEL = { new: '未筛查', known: '已掌握', forgotten: '遗忘', recovered: '已捡回' };
+
+function statusOf(state, id) {
+  return state.words[id] ? state.words[id].status : 'new';
+}
+
+function wordDetails(word) {
+  return h('div', { class: 'details' },
+    h('div', { class: 'ipa' }, `${word.ipa}  ${word.pos}`, speakButton(word.en)),
+    h('div', { class: 'zh' }, word.zh),
+    h('div', { class: 'example' },
+      h('p', {}, word.ex, speakButton(word.ex)),
+      h('p', { class: 'muted' }, word.exZh)));
+}
+
+// ---- src/ui/celebrate.js ----
+
+const CONFETTI = ['⭐', '🎈', '✨', '🎊'];
+
+function showEvents(events) {
+  for (const e of events) {
+    if (e.type === 'task') toast(`完成${e.task === 'review' ? '复习' : '筛查'}任务 +${e.stars} ⭐`);
+  }
+  const checkin = events.find(e => e.type === 'checkin');
+  if (checkin) showCelebration(checkin);
+}
+
+function showCelebration(c) {
+  const overlay = h('div', { class: 'overlay' },
+    h('div', { class: 'celebrate card' },
+      h('div', { class: 'big-emoji' }, '🎉'),
+      h('h2', {}, '今日打卡成功！'),
+      h('p', { class: 'gain' }, `+${c.stars} ⭐`),
+      h('p', {}, `已连续打卡 ${c.streakDays} 天 🔥`),
+      h('button', { class: 'btn primary big', onclick: () => overlay.remove() }, '太棒了！')));
+  for (let i = 0; i < 24; i++) {
+    overlay.append(h('span', {
+      class: 'confetti',
+      style: `left:${Math.random() * 100}%;animation-delay:${(Math.random() * 1.2).toFixed(2)}s`,
+    }, CONFETTI[i % CONFETTI.length]));
+  }
+  document.body.append(overlay);
+  playTone(true);
+}
+
+// ---- src/ui/home.js ----
+
+const PROGRESS_ORDER = ['known', 'recovered', 'forgotten', 'new'];
+
+function renderHome() {
+  const s = getState();
+  const t = s.today;
+  const counts = countByStatus(WORDS, s.words);
+  const total = WORDS.length;
+  return h('main', { class: 'view home' },
+    h('header', { class: 'topbar' },
+      h('div', { class: 'pill' }, `🔥 连续 ${displayStreak(s.stats, t.date)} 天`),
+      h('div', { class: 'pill' }, `⭐ ${s.stats.stars}`)),
+    h('h1', {}, '今日任务'),
+    taskCard('① 复习遗忘词', t.reviewIds, t.reviewDone, 'review', '今天没有要复习的词'),
+    taskCard('② 筛查单词', t.screenIds, t.screenDone, 'screen', '全部单词已筛查完 🎉'),
+    h('section', { class: 'card' },
+      h('h2', {}, `总进度（共 ${total} 词）`),
+      h('div', { class: 'progress' }, ...PROGRESS_ORDER.map(k =>
+        h('span', { class: `seg s-${k}`, style: `width:${total ? (counts[k] / total) * 100 : 0}%` }))),
+      h('ul', { class: 'legend' }, ...PROGRESS_ORDER.map(k =>
+        h('li', {}, h('i', { class: `dot s-${k}` }), `${STATUS_LABEL[k]} ${counts[k]}`)))));
+}
+
+function taskCard(title, list, done, view, emptyText) {
+  const left = remaining(list, done).length;
+  const finished = left === 0;
+  return h('section', { class: `card task${finished ? ' done' : ''}` },
+    h('div', {},
+      h('h2', {}, title),
+      h('p', { class: 'muted' }, list.length === 0 ? emptyText : `${list.length - left} / ${list.length}`)),
+    finished
+      ? h('span', { class: 'check' }, '✓')
+      : h('button', { class: 'btn primary', onclick: () => go(view) }, left === list.length ? '开始' : '继续'));
+}
+
+// ---- src/ui/quiz.js ----
+
+function quizHeader(title, doneCount, total) {
+  return h('div', { class: 'quiz-head' },
+    h('button', { class: 'back', onclick: () => go('home') }, '← 首页'),
+    h('b', {}, title),
+    h('div', { class: 'bar' }, h('span', { style: `width:${total ? (doneCount / total) * 100 : 0}%` })),
+    h('span', { class: 'muted' }, `${doneCount}/${total}`));
+}
+
+function wordPrompt(word) {
+  return h('div', { class: 'prompt' }, h('div', { class: 'word' }, word.en), speakButton(word.en));
+}
+
+function listenPrompt(word) {
+  return h('div', { class: 'prompt' }, speakButton(word.en, 'huge'));
+}
+
+// timerSec 为 0 表示不限时；超时按答错处理
+function choiceQuestion({ word, field, prompt, timerSec, onAnswer }) {
+  const choices = buildChoices(word, WORDS, field);
+  let answered = false;
+  const fill = h('div', { class: 'timer-fill' });
+  const buttons = choices.map(c => h('button', { class: 'choice', onclick: () => finish(c) }, c.label));
+
+  function finish(picked) {
+    if (answered) return;
+    answered = true;
+    const ok = Boolean(picked && picked.correct);
+    choices.forEach((c, i) => {
+      buttons[i].disabled = true;
+      if (c.correct) buttons[i].classList.add('right');
+      else if (c === picked) buttons[i].classList.add('wrong');
+    });
+    playTone(ok);
+    onAnswer(ok);
+  }
+
+  if (timerSec > 0) {
+    const start = Date.now();
+    const id = every(() => {
+      if (answered) {
+        clearInterval(id);
+        return;
+      }
+      const frac = (Date.now() - start) / (timerSec * 1000);
+      fill.style.width = `${Math.max(0, 100 - frac * 100)}%`;
+      if (frac >= 1) {
+        clearInterval(id);
+        finish(null);
+      }
+    }, 100);
+  }
+
+  return h('div', { class: 'quiz' },
+    prompt,
+    timerSec > 0 ? h('div', { class: 'timer' }, fill) : '',
+    h('div', { class: 'choices' }, buttons));
+}
+
+// ---- src/ui/screen.js ----
+
+function renderScreen() {
+  const s = getState();
+  const t = s.today;
+  const ids = remaining(t.screenIds, t.screenDone);
+  if (ids.length === 0) {
+    later(() => go('home'), 0);
+    return h('main', { class: 'view' });
+  }
+  const word = WORD_BY_ID.get(ids[0]);
+  return h('main', { class: 'view quiz-view' },
+    quizHeader('🔍 筛查', t.screenIds.length - ids.length, t.screenIds.length),
+    h('p', { class: 'muted center' }, '选出正确的中文意思'),
+    choiceQuestion({
+      word,
+      field: 'zh',
+      prompt: wordPrompt(word),
+      timerSec: s.settings.timerSec,
+      onAnswer: ok => {
+        answer(word.id, 'screen', ok);
+        later(() => nextOrHome('screen'), ok ? 700 : 1500);
+      },
+    }));
+}
+
+// ---- src/ui/review.js ----
+
+function renderReview() {
+  const s = getState();
+  const t = s.today;
+  const ids = remaining(t.reviewIds, t.reviewDone);
+  if (ids.length === 0) {
+    later(() => go('home'), 0);
+    return h('main', { class: 'view' });
+  }
+  const word = WORD_BY_ID.get(ids[0]);
+  const header = quizHeader('🔁 复习', t.reviewIds.length - ids.length, t.reviewIds.length);
+  const next = () => nextOrHome('review');
+  const afterChoice = kind => ok => {
+    answer(word.id, kind, ok);
+    later(next, ok ? 700 : 1500);
+  };
+
+  // 已掌握 / 已捡回的词到期抽查：和筛查一样的四选一
+  if (isCheckItem(s.words[word.id])) {
+    return h('main', { class: 'view quiz-view' }, header,
+      h('p', { class: 'muted center' }, '抽查：还记得这个词吗？'),
+      choiceQuestion({ word, field: 'zh', prompt: wordPrompt(word), timerSec: s.settings.timerSec, onAnswer: afterChoice('check') }));
+  }
+
+  // 遗忘词：第 1 步看单词卡，第 2 步拼写（或听音选词）
+  const main = h('main', { class: 'view quiz-view' }, header);
+  const showSecondStep = () => {
+    if (s.settings.spelling) {
+      const q = spellQuestion(word, {
+        onResult: ok => {
+          answer(word.id, 'review', ok);
+          if (ok) later(next, 800);
+        },
+        onNext: next,
+      });
+      main.replaceChildren(header, q);
+      q.querySelector('input').focus(); // 同步聚焦，iPad 才会弹出键盘
+    } else {
+      main.replaceChildren(header,
+        h('p', { class: 'muted center' }, '听发音，选出正确的单词'),
+        choiceQuestion({ word, field: 'en', prompt: listenPrompt(word), timerSec: 0, onAnswer: afterChoice('review') }));
+    }
+    speak(word.en);
+  };
+  main.append(h('div', { class: 'card wordcard' },
+    h('div', { class: 'word' }, word.en),
+    wordDetails(word),
+    h('button', { class: 'btn primary big', onclick: showSecondStep }, '我记住了 →')));
+  later(() => speak(word.en), 300);
+  return main;
+}
+
+function spellQuestion(word, { onResult, onNext }) {
+  const input = h('input', {
+    class: 'spell-input', type: 'text', placeholder: '输入英文',
+    autocomplete: 'off', autocapitalize: 'off', autocorrect: 'off', spellcheck: 'false',
+  });
+  const submit = h('button', { class: 'btn primary', onclick: () => check() }, '提交');
+  const feedback = h('div', { class: 'feedback' });
+  let checked = false;
+  const check = () => {
+    if (checked || input.value.trim() === '') return;
+    checked = true;
+    const ok = isSpellingCorrect(input.value, word.en);
+    input.disabled = true;
+    submit.disabled = true;
+    input.classList.add(ok ? 'right' : 'wrong');
+    playTone(ok);
+    onResult(ok);
+    if (ok) {
+      feedback.replaceChildren('✅ 拼对了！');
+      return;
+    }
+    const cont = h('button', { class: 'btn primary', onclick: onNext }, '继续 →');
+    feedback.replaceChildren(h('p', {}, '正确拼写：', h('b', {}, word.en)), cont);
+    cont.focus();
+  };
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') check();
+  });
+  return h('div', { class: 'card spell' },
+    h('div', { class: 'zh big' }, word.zh),
+    h('div', { class: 'row', style: 'justify-content:center' }, speakButton(word.en), h('span', { class: 'muted' }, word.pos)),
+    input,
+    submit,
+    feedback);
+}
+
+// ---- src/ui/wordbook.js ----
+
+// 记住筛选条件：离开词本再回来时保持不变
+let wbTopic = 'all';
+let wbStatus = 'all';
+let wbQuery = '';
+
+function renderWordbook() {
+  const s = getState();
+  const list = h('div', { class: 'wb-list' });
+  const draw = () => {
+    const q = wbQuery.trim().toLowerCase();
+    const rows = WORDS.filter(w =>
+      (wbTopic === 'all' || w.topic === wbTopic) &&
+      (wbStatus === 'all' || statusOf(s, w.id) === wbStatus) &&
+      (q === '' || w.en.toLowerCase().includes(q) || w.zh.includes(q)));
+    list.replaceChildren(h('p', { class: 'muted' }, `共 ${rows.length} 个`), ...rows.map(w => wordbookRow(s, w)));
+  };
+  const topicSel = h('select', { onchange: e => { wbTopic = e.target.value; draw(); } },
+    h('option', { value: 'all' }, '全部话题'),
+    ...TOPICS.map(t => h('option', { value: t.key }, t.zh)));
+  topicSel.value = wbTopic;
+  const statusSel = h('select', { onchange: e => { wbStatus = e.target.value; draw(); } },
+    h('option', { value: 'all' }, '全部状态'),
+    ...Object.entries(STATUS_LABEL).map(([k, label]) => h('option', { value: k }, label)));
+  statusSel.value = wbStatus;
+  const search = h('input', {
+    type: 'search', placeholder: '搜索英文或中文', value: wbQuery,
+    oninput: e => { wbQuery = e.target.value; draw(); },
+  });
+  draw();
+  return h('main', { class: 'view' },
+    h('h1', {}, '📒 词本'),
+    h('div', { class: 'filters' }, topicSel, statusSel, search),
+    list);
+}
+
+function wordbookRow(s, w) {
+  const st = statusOf(s, w.id);
+  return h('details', { class: 'wb-row', ontoggle: e => { if (e.target.open) speak(w.en); } },
+    h('summary', {},
+      h('b', {}, w.en),
+      h('span', { class: 'muted' }, w.zh),
+      h('span', { class: `badge s-${st}` }, STATUS_LABEL[st])),
+    wordDetails(w));
+}
+
+// ---- src/ui/parent.js ----
+
+function renderParent() {
+  const s = getState();
+  return h('main', { class: 'view' },
+    h('h1', {}, '👨‍👩‍👧 家长'),
+    settingsCard(s),
+    statsCard(s),
+    backupCard(),
+    resetCard());
+}
+
+function updateSettings(patch, msg) {
+  const s = getState();
+  commit({ ...s, settings: { ...s.settings, ...patch } });
+  toast(msg);
+}
+
+function selectField(label, value, options, onPick) {
+  const sel = h('select', { onchange: e => onPick(e.target.value) },
+    ...options.map(([v, text]) => h('option', { value: String(v) }, text)));
+  sel.value = String(value);
+  return h('label', { class: 'field' }, h('span', {}, label), sel);
+}
+
+function settingsCard(s) {
+  const st = s.settings;
+  return h('section', { class: 'card' },
+    h('h2', {}, '设置'),
+    selectField('每日筛查数量', st.dailyScreen, SCREEN_OPTIONS.map(n => [n, `${n} 个`]),
+      v => updateSettings({ dailyScreen: Number(v) }, '已保存，从明天起生效')),
+    selectField('筛查倒计时', st.timerSec, TIMER_OPTIONS.map(n => [n, n === 0 ? '关闭' : `${n} 秒`]),
+      v => updateSettings({ timerSec: Number(v) }, '已保存')),
+    selectField('复习时拼写', st.spelling, [[true, '开启'], [false, '关闭（改为听音选词）']],
+      v => updateSettings({ spelling: v === 'true' }, '已保存')));
+}
+
+function formatRate(right, total) {
+  return total ? `${right}/${total}（${Math.round((right / total) * 100)}%）` : '—';
+}
+
+function statsCard(s) {
+  const today = s.today.date;
+  const c = countByStatus(WORDS, s.words);
+  const days = [];
+  for (let i = 13; i >= 0; i--) days.push(addDays(today, -i));
+  const history = s.stats.history;
+  const rows = days.filter(d => history[d]).reverse().map(d =>
+    h('tr', {},
+      h('td', {}, d.slice(5)),
+      h('td', {}, formatRate(history[d].screenRight, history[d].screenTotal)),
+      h('td', {}, formatRate(history[d].reviewRight, history[d].reviewTotal))));
+  return h('section', { class: 'card' },
+    h('h2', {}, '学习统计'),
+    h('p', {}, `已筛查 ${WORDS.length - c.new} / ${WORDS.length} 词：已掌握 ${c.known}，遗忘待复习 ${c.forgotten}，已捡回 ${c.recovered}`),
+    h('p', {}, `星星 ⭐ ${s.stats.stars}　当前连续打卡 ${s.stats.lastCheckin ? s.stats.streakDays : 0} 天（最后打卡 ${s.stats.lastCheckin || '—'}）`),
+    h('h3', {}, '最近 14 天打卡'),
+    h('div', { class: 'cal' }, ...days.map(d => {
+      const ok = Boolean(history[d] && history[d].checked);
+      return h('div', { class: `cal-day${ok ? ' ok' : ''}` }, h('div', {}, d.slice(5)), h('div', { class: 'mark' }, ok ? '✅' : '·'));
+    })),
+    h('h3', {}, '每日正确率'),
+    rows.length
+      ? h('table', { class: 'acc' }, h('tr', {}, h('th', {}, '日期'), h('th', {}, '筛查'), h('th', {}, '复习')), ...rows)
+      : h('p', { class: 'muted' }, '还没有记录'));
+}
+
+function backupCard() {
+  const fileInput = h('input', {
+    type: 'file', accept: '.json,application/json', style: 'display:none',
+    onchange: e => importFile(e.target.files[0]),
+  });
+  return h('section', { class: 'card' },
+    h('h2', {}, '备份进度'),
+    h('p', { class: 'muted' }, '换设备或清理浏览器之前先导出备份，之后可以导入恢复。'),
+    h('div', { class: 'row' },
+      h('button', { class: 'btn primary', onclick: exportBackup }, '导出备份'),
+      h('button', { class: 'btn', onclick: () => fileInput.click() }, '导入备份'),
+      fileInput));
+}
+
+function exportBackup() {
+  const url = URL.createObjectURL(new Blob([exportJSON(getState())], { type: 'application/json' }));
+  const a = h('a', { href: url, download: `ket-vocab-backup-${todayStr()}.json` });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function importFile(file) {
+  if (!file) return;
+  try {
+    const imported = importJSON(await file.text());
+    if (!confirm('导入后会覆盖当前进度，确定吗？')) return;
+    commit(ensureToday(imported, WORDS, todayStr()));
+    toast('导入成功');
+    go('parent');
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+function resetCard() {
+  const input = h('input', { type: 'text', placeholder: '输入“重置”两个字' });
+  const doReset = () => {
+    if (input.value.trim() !== '重置') {
+      toast('请输入“重置”两个字');
+      return;
+    }
+    commit(ensureToday(defaultState(), WORDS, todayStr()));
+    toast('已重置');
+    go('home');
+  };
+  return h('section', { class: 'card' },
+    h('h2', {}, '重置进度'),
+    h('p', { class: 'muted' }, '清空全部学习记录和星星，无法撤销。建议先导出备份。'),
+    h('div', { class: 'row' }, input, h('button', { class: 'btn danger', onclick: doReset }, '重置')));
+}
+
+// ---- src/app.js ----
+
+const VIEWS = {
+  home: renderHome,
+  screen: renderScreen,
+  review: renderReview,
+  wordbook: renderWordbook,
+  parent: renderParent,
+};
+const NAV_ITEMS = [['home', '🏠 首页'], ['wordbook', '📒 词本'], ['parent', '👨‍👩‍👧 家长']];
+const WARNINGS = {
+  unavailable: '⚠️ 浏览器不允许保存进度（可能开了无痕模式），关闭页面后今天的进度会丢失。',
+  corrupt: '⚠️ 原来的进度数据损坏了，已经重新开始。损坏的数据已另存，请告诉家长。',
+};
+
+let appState = null;
+let appStorage = null;
+let appWarning = null;
+let viewTimers = [];
+// 已结算但还没展示的奖励事件：不管孩子从哪条路离开题目页，下一次渲染都会弹出来
+let pendingEvents = [];
+
+function getState() {
+  return appState;
+}
+
+function commit(next) {
+  appState = next;
+  if (!saveState(appStorage, next) && appWarning === null) appWarning = 'unavailable';
+}
+
+function later(fn, ms) {
+  viewTimers.push(setTimeout(fn, ms));
+}
+
+function every(fn, ms) {
+  const id = setInterval(fn, ms);
+  viewTimers.push(id);
+  return id;
+}
+
+function clearViewTimers() {
+  for (const id of viewTimers) {
+    clearTimeout(id);
+    clearInterval(id);
+  }
+  viewTimers = [];
+}
+
+// 每次渲染前都检查日期：过了午夜就换成新一天的任务
+function refreshDay() {
+  const r = settle(ensureToday(appState, WORDS, todayStr()));
+  commit(r.state);
+  return r.events;
+}
+
+function navEl(view) {
+  if (view === 'screen' || view === 'review') return '';
+  return h('nav', { class: 'nav' }, ...NAV_ITEMS
+    .filter(([key]) => VIEWS[key])
+    .map(([key, label]) => h('button', { class: key === view ? 'active' : '', onclick: () => go(key) }, label)));
+}
+
+function go(view) {
+  clearViewTimers();
+  const events = [...pendingEvents, ...refreshDay()];
+  pendingEvents = [];
+  const banner = appWarning ? h('div', { class: 'banner' }, WARNINGS[appWarning]) : '';
+  document.getElementById('app').replaceChildren(banner, VIEWS[view](), navEl(view));
+  window.scrollTo(0, 0);
+  showEvents(events);
+}
+
+function answer(id, kind, ok) {
+  const r = settle(recordAnswer(appState, id, kind, ok));
+  commit(r.state);
+  pendingEvents.push(...r.events);
+}
+
+function nextOrHome(view) {
+  const t = appState.today;
+  const left = view === 'screen' ? remaining(t.screenIds, t.screenDone) : remaining(t.reviewIds, t.reviewDone);
+  go(left.length > 0 ? view : 'home');
+}
+
+function boot() {
+  appStorage = getStorage();
+  const loaded = loadState(appStorage);
+  appWarning = loaded.warning;
+  appState = loaded.state;
+  initSpeech();
+  const start = location.hash.slice(1);
+  go(VIEWS[start] ? start : 'home');
+}
+
+boot();
+</script>
+</body>
+</html>

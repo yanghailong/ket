@@ -15,6 +15,7 @@ test('构建生成单个可解析、无外部地址的 HTML', () => {
   assert.doesNotThrow(() => new Function(script));
   assert.match(script, /function renderHome/);
   assert.match(script, /boot\(\);/);
+  assert.equal(readFileSync('index.html', 'utf8'), html, '根目录 index.html 供 GitHub Pages 使用，需与 dist 一致');
 });
 
 test('顶层名字重复时构建失败', () => {

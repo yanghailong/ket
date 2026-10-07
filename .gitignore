@@ -4,3 +4,5 @@ dist/
 helloword
 helloword.dSYM/
 node_modules/
+helloword.cpp
+.vscode/

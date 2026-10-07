@@ -69,6 +69,7 @@ function main() {
     .replace('/*SCRIPT*/', () => script);
   mkdirSync('dist', { recursive: true });
   writeFileSync('dist/ket-vocab.html', html);
+  writeFileSync('index.html', html); // GitHub Pages 从仓库根目录发布
   console.log(`已生成 dist/ket-vocab.html（${WORDS.length} 词，${Math.round(html.length / 1024)} KB）`);
 }
 
